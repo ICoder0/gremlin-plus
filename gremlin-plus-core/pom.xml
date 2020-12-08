@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>gremlin-plus-parent</artifactId>
+        <groupId>com.icoder0</groupId>
+        <version>1.0.0</version>
+    </parent>
+    <artifactId>gremlin-plus-core</artifactId>
+    <name>gremlin-plus-core</name>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.icoder0</groupId>
+            <artifactId>gremlin-plus-annotation</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- gremlin -->
+        <dependency>
+            <groupId>org.apache.tinkerpop</groupId>
+            <artifactId>gremlin-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>cglib</groupId>
+            <artifactId>cglib</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.tinkerpop</groupId>
+            <artifactId>tinkergraph-gremlin</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+</project>

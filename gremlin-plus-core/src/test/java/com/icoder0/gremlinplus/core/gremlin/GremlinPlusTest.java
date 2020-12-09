@@ -5,17 +5,11 @@ import com.icoder0.gremlinplus.annotation.VertexId;
 import com.icoder0.gremlinplus.annotation.VertexProperty;
 import com.icoder0.gremlinplus.process.traversal.dsl.GraphPlusTraversalSource;
 import com.icoder0.gremlinplus.process.traversal.function.SerializedFunction;
-import org.apache.tinkerpop.gremlin.process.traversal.P;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import org.junit.Test;
 
-import java.util.List;
-import java.util.Spliterator;
-import java.util.Spliterators;
-import java.util.stream.StreamSupport;
 
 /**
  * @author bofa1ex
@@ -26,13 +20,14 @@ public class GremlinPlusTest {
     @Test
     public void addVManually() {
         final TinkerGraph graph = TinkerGraph.open();
-        try (GraphPlusTraversalSource traversal = graph.traversal(GraphPlusTraversalSource.class)) {
+        try (GraphPlusTraversalSource traversal = graph.traversal(GraphPlusTraversalSource.class).supportSerializable()) {
             final Vertex vertex = traversal.addV(User.class)
                     .property(User::getName, "bofa1ex")
                     .property(User::getAge, 21)
                     .next();
-            vertex.values(SerializedFunction.method2Properties(User::getName, User::getAge)).forEachRemaining(System.out::println);
-        } catch (Exception ignored) {
+            vertex.values(SerializedFunction.method2Properties(User::getId, User::getName, User::getAge)).forEachRemaining(System.out::println);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -42,8 +37,8 @@ public class GremlinPlusTest {
         final User user = new User("bofa1ex", 21);
         try (GraphPlusTraversalSource traversal = graph.traversal(GraphPlusTraversalSource.class)) {
             final Vertex vertex = traversal.addV(user);
-            final Object name = vertex.value(SerializedFunction.method2Property(User::getName));
-            System.out.println(name);
+
+            vertex.values(SerializedFunction.method2Properties(User::getId, User::getName)).forEachRemaining(System.out::println);
         } catch (Exception ignored) {
         }
     }
@@ -72,20 +67,19 @@ public class GremlinPlusTest {
     public void vProperty() {
         final TinkerGraph graph = TinkerGraph.open();
         try (GraphPlusTraversalSource traversal = graph.traversal(GraphPlusTraversalSource.class)) {
-            traversal.addV(new User("bofa1ex", 21));
-            traversal.addV(new User("yl", 22));
-            final List<Vertex> vertexes = traversal.V().hasLabel(User.class)
-                    .has(User::getName, P.within("bofa1ex", "yl"))
-                    .toList();
-            vertexes.stream().map(vertex -> vertex.values(SerializedFunction.method2Properties(User::getName, User::getAge)))
-                    .flatMap(iterator -> StreamSupport.stream(Spliterators.spliterator(iterator, 0, Spliterator.ORDERED), true))
-                    .forEach(System.out::println);
-            System.out.println("====================================");
-            final Integer age = traversal.V().hasLabel(User.class)
-                    .has(User::getName, "bofa1ex")
-                    .value(User::getAge)
+            traversal.addE(DefaultEdge.class)
+                    .from(traversal.addV(new User("bofa1ex", 21)))
+                    .to(traversal.addV(new User2("yl")))
                     .next();
-            System.out.println(age);
+            System.out.println("====================================");
+
+            final User2 user = traversal.V().hasLabel(User.class)
+                    .has(User::getName, "bofa1ex")
+                    .out(DefaultEdge.class)
+                    .hasLabel(User2.class)
+                    .has(User2::getName, "yl")
+                    .toBean();
+            System.out.println(user);
         } catch (Exception ignored) {
         }
     }
@@ -93,6 +87,45 @@ public class GremlinPlusTest {
     @GraphLabel("<DEFAULT>")
     public static class DefaultEdge {
 
+    }
+
+    @GraphLabel("<USER2>")
+    public static class User2{
+        @VertexId
+        private Object id;
+        @VertexProperty("[NAME]")
+        private String name;
+
+        public User2() {
+        }
+
+        public User2(String name) {
+            this.name = name;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public Object getId() {
+            return id;
+        }
+
+        public void setId(Object id) {
+            this.id = id;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public String toString() {
+            return "User2{" +
+                    "id=" + id +
+                    ", name='" + name + '\'' +
+                    '}';
+        }
     }
 
     @GraphLabel("<USER>")
@@ -105,7 +138,9 @@ public class GremlinPlusTest {
         private Integer age;
         @VertexProperty(value = "[PARK_THREAD]", serializable = false)
         private Thread parkThread;
-//        private WebsocketSession session;
+
+        public User() {
+        }
 
         // add, drop, 优先操作内存缓存. 这些操作存在队列里面, 去做持久化.
         // http api
@@ -136,6 +171,20 @@ public class GremlinPlusTest {
 
         public void setAge(Integer age) {
             this.age = age;
+        }
+
+        public Thread getParkThread() {
+            return parkThread;
+        }
+
+        @Override
+        public String toString() {
+            return "User{" +
+                    "id=" + id +
+                    ", name='" + name + '\'' +
+                    ", age=" + age +
+                    ", parkThread=" + parkThread +
+                    '}';
         }
     }
 }

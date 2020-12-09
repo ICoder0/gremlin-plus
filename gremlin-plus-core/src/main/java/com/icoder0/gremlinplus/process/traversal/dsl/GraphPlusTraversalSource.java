@@ -26,6 +26,7 @@ import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.apache.tinkerpop.gremlin.structure.util.empty.EmptyGraph;
 
 import java.util.Map;
+import java.util.Optional;
 
 import static com.icoder0.gremlinplus.process.traversal.toolkit.VertexDefinitionSupport.*;
 
@@ -39,6 +40,7 @@ public class GraphPlusTraversalSource implements TraversalSource {
     protected final Graph graph;
     protected TraversalStrategies strategies;
     protected Bytecode bytecode = new Bytecode();
+    protected boolean supportSerializable;
 
     public GraphPlusTraversalSource(Graph graph) {
         this(graph, TraversalStrategies.GlobalCache.getStrategies(graph.getClass()));
@@ -47,12 +49,19 @@ public class GraphPlusTraversalSource implements TraversalSource {
     public GraphPlusTraversalSource(Graph graph, TraversalStrategies strategies) {
         this.graph = graph;
         this.strategies = strategies;
+        this.supportSerializable = false;
     }
 
     public GraphPlusTraversalSource(RemoteConnection connection) {
         this(EmptyGraph.instance(), TraversalStrategies.GlobalCache.getStrategies(EmptyGraph.class).clone());
         this.connection = connection;
         this.strategies.addStrategies(new RemoteStrategy(connection));
+        this.supportSerializable = false;
+    }
+
+    public GraphPlusTraversalSource supportSerializable(){
+        this.supportSerializable = true;
+        return this;
     }
 
     // ************************************************************************
@@ -60,7 +69,7 @@ public class GraphPlusTraversalSource implements TraversalSource {
     // ************************************************************************
     public <T> Vertex addV(T entity) {
         final Class<?> vertexClazz = entity.getClass();
-        final GraphPlusTraversalSource clone = this.clone();
+
         final VertexDefinition vertexDefinition = VERTEX_DEFINITION_MAP.computeIfAbsent(vertexClazz, ignored -> VertexDefinition.builder()
                 .withLabel(resolveLabel(vertexClazz).orElseThrow(() -> new IllegalArgumentException("Vertex实体类必须声明标签注解GraphLabel")))
                 .withVertexPropertyDefinitionMap(resolveProperties(vertexClazz))
@@ -70,11 +79,11 @@ public class GraphPlusTraversalSource implements TraversalSource {
         final String label = vertexDefinition.getLabel();
         final Map<String, VertexPropertyDefinition> vertexPropertyDefinitionMap = vertexDefinition.getVertexPropertyDefinitionMap();
 
+        final GraphPlusTraversalSource clone = this.clone();
         clone.bytecode.addStep(GraphTraversal.Symbols.addV, label);
-        final GraphPlusTraversal<Vertex, Vertex, T> first = new GraphPlusTraversal<>(clone);
+        final GraphPlusTraversal<Vertex, Vertex, T> first = new GraphPlusTraversal<>(clone, supportSerializable);
 
         final Vertex vertex = first.addStep(new AddVertexStartStep(first, label)).next();
-
         final BeanMap beanMap = vertexDefinition.getBeanMap();
         for (Object key : beanMap.keySet()) {
             final VertexPropertyDefinition vertexPropertyDefinition = vertexPropertyDefinitionMap.get((String) key);
@@ -83,8 +92,11 @@ public class GraphPlusTraversalSource implements TraversalSource {
                 continue;
             }
             final String propertyName = vertexPropertyDefinition.getPropertyName();
-            final Object value = beanMap.get(entity, key);
-            vertex.property(propertyName, value);
+            // 如果该字段不支持持久化且当前graph支持持久化.
+            if (supportSerializable && !vertexPropertyDefinition.isSerializable()) {
+                continue;
+            }
+            Optional.ofNullable(beanMap.get(entity, key)).ifPresent(value -> vertex.property(propertyName, value));
         }
         return vertex;
     }
@@ -102,7 +114,7 @@ public class GraphPlusTraversalSource implements TraversalSource {
         );
         final String label = vertexDefinition.getLabel();
         clone.bytecode.addStep(GraphTraversal.Symbols.addV, label);
-        final GraphPlusTraversal<Vertex, Vertex, T> traversal = new GraphPlusTraversal<>(clone);
+        final GraphPlusTraversal<Vertex, Vertex, T> traversal = new GraphPlusTraversal<>(clone, supportSerializable);
         return (GraphPlusTraversal<Vertex, Vertex, T>) traversal.addStep(new AddVertexStartStep(traversal, label));
     }
 
@@ -113,10 +125,9 @@ public class GraphPlusTraversalSource implements TraversalSource {
         final GraphPlusTraversalSource clone = this.clone();
         final String label = resolveLabel(clazz).orElseThrow(() -> new IllegalArgumentException("Edge实体类必须声明标签注解GraphLabel"));
         clone.bytecode.addStep(GraphTraversal.Symbols.addE, label);
-        final GraphPlusTraversal<Edge, Edge, T> traversal = new GraphPlusTraversal<>(clone);
+        final GraphPlusTraversal<Edge, Edge, T> traversal = new GraphPlusTraversal<>(clone, supportSerializable);
         return (GraphPlusTraversal<Edge, Edge, T>) traversal.addStep(new AddEdgeStartStep(traversal, label));
     }
-
 
     /**
      * Spawns a {@link GraphTraversal} starting it with arbitrary values.
@@ -124,7 +135,7 @@ public class GraphPlusTraversalSource implements TraversalSource {
     public <S> GraphPlusTraversal<S, S, ?> inject(S... starts) {
         final GraphPlusTraversalSource clone = this.clone();
         clone.bytecode.addStep(GraphTraversal.Symbols.inject, starts);
-        final GraphPlusTraversal<S, S, ?> traversal = new GraphPlusTraversal<>(clone);
+        final GraphPlusTraversal<S, S, ?> traversal = new GraphPlusTraversal<>(clone, supportSerializable);
         return (GraphPlusTraversal<S, S, ?>) traversal.addStep(new InjectStep<S>(traversal, starts));
     }
 
@@ -135,7 +146,7 @@ public class GraphPlusTraversalSource implements TraversalSource {
     public GraphPlusTraversal<Vertex, Vertex, ?> V(final Object... vertexIds) {
         final GraphPlusTraversalSource clone = this.clone();
         clone.bytecode.addStep(GraphTraversal.Symbols.V, vertexIds);
-        final GraphPlusTraversal<Vertex, Vertex, ?> traversal = new GraphPlusTraversal<>(clone);
+        final GraphPlusTraversal<Vertex, Vertex, ?> traversal = new GraphPlusTraversal<>(clone, supportSerializable);
         return (GraphPlusTraversal<Vertex, Vertex, ?>) traversal.addStep(new GraphStep<>(traversal, Vertex.class, true, vertexIds));
     }
 
@@ -146,7 +157,7 @@ public class GraphPlusTraversalSource implements TraversalSource {
     public GraphPlusTraversal<Edge, Edge, ?> E(final Object... edgesIds) {
         final GraphPlusTraversalSource clone = this.clone();
         clone.bytecode.addStep(GraphTraversal.Symbols.E, edgesIds);
-        final GraphPlusTraversal<Edge, Edge, ?> traversal = new GraphPlusTraversal<>(clone);
+        final GraphPlusTraversal<Edge, Edge, ?> traversal = new GraphPlusTraversal<>(clone, supportSerializable);
         return (GraphPlusTraversal<Edge, Edge, ?>) traversal.addStep(new GraphStep<>(traversal, Edge.class, true, edgesIds));
     }
 
@@ -167,7 +178,7 @@ public class GraphPlusTraversalSource implements TraversalSource {
     public <S> GraphTraversal<S, S> io(final String file) {
         final GraphPlusTraversalSource clone = this.clone();
         clone.bytecode.addStep(GraphTraversal.Symbols.io, file);
-        final GraphPlusTraversal<S, S, ?> traversal = new GraphPlusTraversal<>(clone);
+        final GraphPlusTraversal<S, S, ?> traversal = new GraphPlusTraversal<>(clone, supportSerializable);
         return traversal.addStep(new IoStep<S>(traversal, file));
     }
 

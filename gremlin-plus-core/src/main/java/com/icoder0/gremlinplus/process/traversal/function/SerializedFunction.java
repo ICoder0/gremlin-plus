@@ -19,25 +19,41 @@ import java.util.function.Function;
 @FunctionalInterface
 public interface SerializedFunction<T, R> extends Function<T, R>, Serializable {
 
-    static <T> String method2Property(SerializedFunction<T, ?> func) {
-        final SerializedLambda lambda = LambdaSupport.resolve(func);
-        final String fieldName = PropertyNamerSupport.resolvePropertyName(lambda.getImplMethodName());
+    static String method2Property(SerializedLambda lambda) {
+        return method2Property(lambda, false);
+    }
 
-        return Optional.ofNullable(VertexDefinitionSupport.VERTEX_DEFINITION_MAP.get(ThrowingSupplier.unchecked(() -> LambdaSupport.getImplClass(lambda)).get()))
+    static String method2Property(SerializedLambda lambda, boolean supportSerializable) {
+        final Class<?> implClass = getFuncImplClass(lambda);
+        final String fieldName = method2Field(lambda);
+
+        return Optional.ofNullable(VertexDefinitionSupport.VERTEX_DEFINITION_MAP.get(implClass))
                 .map(VertexDefinition::getVertexPropertyDefinitionMap)
                 .map(vertexPropertyDefinitionMap -> vertexPropertyDefinitionMap.get(fieldName))
-                // 跳过主键
-                .filter(vertexPropertyDefinition -> !vertexPropertyDefinition.isPrimaryKey())
+                .filter(vertexPropertyDefinition -> vertexPropertyDefinition.isSerializable() || !supportSerializable)
+                .filter(vertexPropertyDefinition -> {
+                    if (vertexPropertyDefinition.isPrimaryKey()) {
+                        throw new IllegalArgumentException("property不支持vertexId查询");
+                    }
+                    return true;
+                })
                 .map(VertexPropertyDefinition::getPropertyName)
-                .orElseThrow(() -> new CheckedException("不会出现该异常情况"));
+                .get();
     }
 
+    @SafeVarargs
     static <T> String[] method2Properties(SerializedFunction<T, ?>... funcs) {
-        return Arrays.stream(funcs).map(SerializedFunction::method2Property).toArray(String[]::new);
+        return Arrays.stream(funcs)
+                .map(LambdaSupport::resolve)
+                .map(SerializedFunction::method2Property)
+                .toArray(String[]::new);
     }
 
-    static <T, R> String method2Field(SerializedFunction<T, R> func) {
-        final SerializedLambda lambda = LambdaSupport.resolve(func);
+    static String method2Field(SerializedLambda lambda) {
         return PropertyNamerSupport.resolvePropertyName(lambda.getImplMethodName());
+    }
+
+    static Class<?> getFuncImplClass(SerializedLambda lambda){
+        return ThrowingSupplier.unchecked(() -> LambdaSupport.getImplClass(lambda)).get();
     }
 }

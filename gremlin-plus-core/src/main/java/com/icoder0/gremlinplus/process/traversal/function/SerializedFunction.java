@@ -5,6 +5,8 @@ import com.icoder0.gremlinplus.process.traversal.definition.VertexPropertyDefini
 import com.icoder0.gremlinplus.process.traversal.toolkit.LambdaSupport;
 import com.icoder0.gremlinplus.process.traversal.toolkit.PropertyNamerSupport;
 import com.icoder0.gremlinplus.process.traversal.toolkit.VertexDefinitionSupport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.lang.invoke.SerializedLambda;
@@ -19,6 +21,8 @@ import java.util.function.Function;
 @FunctionalInterface
 public interface SerializedFunction<T, R> extends Function<T, R>, Serializable {
 
+    Logger LOG = LoggerFactory.getLogger(SerializedFunction.class);
+
     static String method2Property(SerializedLambda lambda) {
         return method2Property(lambda, false);
     }
@@ -30,15 +34,18 @@ public interface SerializedFunction<T, R> extends Function<T, R>, Serializable {
         return Optional.ofNullable(VertexDefinitionSupport.VERTEX_DEFINITION_MAP.get(implClass))
                 .map(VertexDefinition::getVertexPropertyDefinitionMap)
                 .map(vertexPropertyDefinitionMap -> vertexPropertyDefinitionMap.get(fieldName))
-                .filter(vertexPropertyDefinition -> vertexPropertyDefinition.isSerializable() || !supportSerializable)
                 .filter(vertexPropertyDefinition -> {
                     if (vertexPropertyDefinition.isPrimaryKey()) {
                         throw new IllegalArgumentException("property不支持vertexId查询");
                     }
+                    if (supportSerializable && !vertexPropertyDefinition.isSerializable()){
+                        LOG.warn("{}#{} 字段不支持持久化", implClass.getSimpleName(), fieldName);
+                        return false;
+                    }
                     return true;
                 })
                 .map(VertexPropertyDefinition::getPropertyName)
-                .get();
+                .orElse(null);
     }
 
     @SafeVarargs

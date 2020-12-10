@@ -10,6 +10,8 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import org.junit.Test;
 
+import java.util.List;
+
 
 /**
  * @author bofa1ex
@@ -20,12 +22,13 @@ public class GremlinPlusTest {
     @Test
     public void addVManually() {
         final TinkerGraph graph = TinkerGraph.open();
-        try (GraphPlusTraversalSource traversal = graph.traversal(GraphPlusTraversalSource.class).supportSerializable()) {
-            final Vertex vertex = traversal.addV(User.class)
+        try (GraphPlusTraversalSource traversal = graph.traversal(GraphPlusTraversalSource.class)) {
+             final User user = traversal.addV(User.class)
                     .property(User::getName, "bofa1ex")
                     .property(User::getAge, 21)
-                    .next();
-            vertex.values(SerializedFunction.method2Properties(User::getId, User::getName, User::getAge)).forEachRemaining(System.out::println);
+                    .property(User::getParkThread, Thread.currentThread())
+                    .toBean();
+            System.out.println(user);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -37,9 +40,10 @@ public class GremlinPlusTest {
         final User user = new User("bofa1ex", 21);
         try (GraphPlusTraversalSource traversal = graph.traversal(GraphPlusTraversalSource.class)) {
             final Vertex vertex = traversal.addV(user);
-
-            vertex.values(SerializedFunction.method2Properties(User::getId, User::getName)).forEachRemaining(System.out::println);
-        } catch (Exception ignored) {
+            System.out.println(user);
+            vertex.values(SerializedFunction.method2Properties(User::getName)).forEachRemaining(System.out::println);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

@@ -59,7 +59,7 @@ public class GraphPlusTraversalSource implements TraversalSource {
         this.supportSerializable = false;
     }
 
-    public GraphPlusTraversalSource supportSerializable(){
+    public GraphPlusTraversalSource supportSerializable() {
         this.supportSerializable = true;
         return this;
     }
@@ -69,7 +69,6 @@ public class GraphPlusTraversalSource implements TraversalSource {
     // ************************************************************************
     public <T> Vertex addV(T entity) {
         final Class<?> vertexClazz = entity.getClass();
-
         final VertexDefinition vertexDefinition = VERTEX_DEFINITION_MAP.computeIfAbsent(vertexClazz, ignored -> VertexDefinition.builder()
                 .withLabel(resolveLabel(vertexClazz).orElseThrow(() -> new IllegalArgumentException("Vertex实体类必须声明标签注解GraphLabel")))
                 .withVertexPropertyDefinitionMap(resolveProperties(vertexClazz))
@@ -81,7 +80,7 @@ public class GraphPlusTraversalSource implements TraversalSource {
 
         final GraphPlusTraversalSource clone = this.clone();
         clone.bytecode.addStep(GraphTraversal.Symbols.addV, label);
-        final GraphPlusTraversal<Vertex, Vertex, T> first = new GraphPlusTraversal<>(clone, supportSerializable);
+        final GraphPlusTraversal<Vertex, Vertex, T> first = new GraphPlusTraversal<>(clone, supportSerializable, (Class<T>) entity.getClass());
 
         final Vertex vertex = first.addStep(new AddVertexStartStep(first, label)).next();
         final BeanMap beanMap = vertexDefinition.getBeanMap();
@@ -89,6 +88,8 @@ public class GraphPlusTraversalSource implements TraversalSource {
             final VertexPropertyDefinition vertexPropertyDefinition = vertexPropertyDefinitionMap.get((String) key);
             // 如果是主键id, 跳过property赋值.
             if (vertexPropertyDefinition.isPrimaryKey()) {
+                // vertex#id赋值
+                beanMap.put(entity, key, vertex.id());
                 continue;
             }
             final String propertyName = vertexPropertyDefinition.getPropertyName();
@@ -106,15 +107,17 @@ public class GraphPlusTraversalSource implements TraversalSource {
      */
     public <T> GraphPlusTraversal<Vertex, Vertex, T> addV(Class<T> clazz) {
         final GraphPlusTraversalSource clone = this.clone();
+        final BeanMap.Generator generator = new BeanMap.Generator();
+        generator.setBeanClass(clazz);
         final VertexDefinition vertexDefinition = VERTEX_DEFINITION_MAP.computeIfAbsent(clazz, ignored -> VertexDefinition.builder()
                 .withLabel(resolveLabel(clazz).orElseThrow(() -> new IllegalArgumentException("Vertex实体类必须声明标签注解GraphLabel")))
                 .withVertexPropertyDefinitionMap(resolveProperties(clazz))
-                .withBeanMap(BeanMap.create(clazz))
+                .withBeanMap(generator.create())
                 .build()
         );
         final String label = vertexDefinition.getLabel();
         clone.bytecode.addStep(GraphTraversal.Symbols.addV, label);
-        final GraphPlusTraversal<Vertex, Vertex, T> traversal = new GraphPlusTraversal<>(clone, supportSerializable);
+        final GraphPlusTraversal<Vertex, Vertex, T> traversal = new GraphPlusTraversal<>(clone, supportSerializable, clazz);
         return (GraphPlusTraversal<Vertex, Vertex, T>) traversal.addStep(new AddVertexStartStep(traversal, label));
     }
 

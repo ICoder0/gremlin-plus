@@ -27,12 +27,15 @@
             <artifactId>cglib</artifactId>
         </dependency>
         <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+        </dependency>
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.13</version>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>org.apache.tinkerpop</groupId>
             <artifactId>tinkergraph-gremlin</artifactId>

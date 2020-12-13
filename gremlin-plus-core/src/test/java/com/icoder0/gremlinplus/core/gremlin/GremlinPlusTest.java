@@ -11,6 +11,7 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.Optional;
 
 
 /**
@@ -52,16 +53,15 @@ public class GremlinPlusTest {
         final TinkerGraph graph = TinkerGraph.open();
         final User u1 = new User("bofa1ex", 21);
         final User u2 = new User("yl", 22);
-        try (GraphPlusTraversalSource traversal = graph.traversal(GraphPlusTraversalSource.class)) {
-            final Edge edge = traversal.addE(DefaultEdge.class)
+        try (GraphPlusTraversalSource traversal = graph.traversal(GraphPlusTraversalSource.class).supportSerializable()) {
+            final Optional<Edge> edgeOpt = traversal.addE(DefaultEdge.class)
                     .from(traversal.addV(u1))
                     .to(traversal.addV(u2))
-                    .next();
-            final Vertex inVertex = edge.inVertex();
-            final Vertex outVertex = edge.outVertex();
-            inVertex.values(SerializedFunction.method2Properties(User::getName, User::getAge)).forEachRemaining(System.out::println);
-            System.out.println();
-            outVertex.values(SerializedFunction.method2Properties(User::getName, User::getAge)).forEachRemaining(System.out::println);
+                    .tryNext();
+            edgeOpt.map(Edge::inVertex).map(vertex -> vertex.values(SerializedFunction.method2Properties(User::getName, User::getAge)))
+                    .ifPresent(data -> data.forEachRemaining(System.out::println));
+            edgeOpt.map(Edge::outVertex).map(vertex -> vertex.values(SerializedFunction.method2Properties(User::getName, User::getAge)))
+                    .ifPresent(data -> data.forEachRemaining(System.out::println));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -136,9 +136,9 @@ public class GremlinPlusTest {
     public static class User {
         @VertexId
         private Object id;
-        @VertexProperty("[NAME]")
+        @VertexProperty(value = "[NAME]", serializable = false)
         private String name;
-        @VertexProperty("[AGE]")
+        @VertexProperty(value = "[AGE]", serializable = false)
         private Integer age;
         @VertexProperty(value = "[PARK_THREAD]", serializable = false)
         private Thread parkThread;

@@ -14,6 +14,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+        <orient.graph.version>3.1.3</orient.graph.version>
     </properties>
 
     <dependencies>
@@ -21,6 +22,17 @@
             <groupId>com.icoder0</groupId>
             <artifactId>gremlin-plus</artifactId>
             <version>1.0.0</version>
+        </dependency>
+        <!-- orient-graph-gremlin -->
+        <dependency>
+            <groupId>com.orientechnologies</groupId>
+            <artifactId>orientdb-gremlin</artifactId>
+            <version>${orient.graph.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.16</version>
         </dependency>
     </dependencies>
 </project>

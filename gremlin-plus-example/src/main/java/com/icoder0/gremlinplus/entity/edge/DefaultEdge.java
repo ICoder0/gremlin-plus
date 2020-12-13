@@ -1,4 +1,4 @@
-package com.icoder0.entity;
+package com.icoder0.gremlinplus.entity.edge;
 
 import com.icoder0.gremlinplus.annotation.GraphLabel;
 

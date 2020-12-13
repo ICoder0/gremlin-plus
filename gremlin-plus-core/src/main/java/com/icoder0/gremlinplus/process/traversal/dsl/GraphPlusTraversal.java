@@ -2,15 +2,18 @@ package com.icoder0.gremlinplus.process.traversal.dsl;
 
 import com.icoder0.gremlinplus.process.traversal.definition.VertexDefinition;
 import com.icoder0.gremlinplus.process.traversal.definition.VertexPropertyDefinition;
+import com.icoder0.gremlinplus.process.traversal.function.CheckedException;
 import com.icoder0.gremlinplus.process.traversal.function.SerializedFunction;
 import com.icoder0.gremlinplus.process.traversal.toolkit.CglibSupport;
 import com.icoder0.gremlinplus.process.traversal.toolkit.LambdaSupport;
 import net.sf.cglib.beans.BeanMap;
-import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalSource;
+import org.apache.tinkerpop.gremlin.process.traversal.Traverser;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
+import org.apache.tinkerpop.gremlin.process.traversal.step.FromToModulating;
+import org.apache.tinkerpop.gremlin.process.traversal.step.filter.LambdaFilterStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.filter.NotStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.filter.TraversalFilterStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.PropertiesStep;
@@ -23,10 +26,9 @@ import org.apache.tinkerpop.gremlin.structure.PropertyType;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import java.lang.invoke.SerializedLambda;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import static com.icoder0.gremlinplus.process.traversal.toolkit.VertexDefinitionSupport.VERTEX_DEFINITION_MAP;
 import static com.icoder0.gremlinplus.process.traversal.toolkit.VertexDefinitionSupport.resolveLabel;
@@ -195,7 +197,30 @@ public class GraphPlusTraversal<S, E, L> extends DefaultTraversal<S, E> implemen
         return (GraphPlusTraversal<S, Vertex, L>) this.asAdmin().addStep(new VertexStep<>(this.asAdmin(), Vertex.class, Direction.BOTH, edgeLabel));
     }
 
+    public GraphPlusTraversal<S, E, L> from(final Vertex fromVertex) {
+        if (fromVertex == null) {
+            TraversalHelper.removeAllSteps(this);
+            return this;
+        }
+        this.asAdmin().getBytecode().addStep(GraphTraversal.Symbols.from, fromVertex);
+        ((FromToModulating) this.asAdmin().getEndStep()).addFrom(__.constant(fromVertex).asAdmin());
+        return this;
+    }
+
+    public GraphPlusTraversal<S, E, L> to(final Vertex toVertex) {
+        if (toVertex == null) {
+            TraversalHelper.removeAllSteps(this);
+            return this;
+        }
+        this.asAdmin().getBytecode().addStep(GraphTraversal.Symbols.to, toVertex);
+        ((FromToModulating) this.asAdmin().getEndStep()).addTo(__.constant(toVertex).asAdmin());
+        return this;
+    }
+
     public L toBean() {
+        if (Objects.isNull(labelEntityClass)) {
+            throw new CheckedException("必须有声明labelEntity的step");
+        }
         final L o = (L) CglibSupport.newInstance(labelEntityClass);
         final VertexDefinition vertexDefinition = VERTEX_DEFINITION_MAP.get(labelEntityClass);
         final BeanMap beanMap = vertexDefinition.getBeanMap();
@@ -209,5 +234,50 @@ public class GraphPlusTraversal<S, E, L> extends DefaultTraversal<S, E> implemen
             beanMap.put(o, entry.getKey(), vertex.property(entry.getValue().getPropertyName()).orElse(null));
         }
         return o;
+    }
+
+    public List<L> toBeanList() {
+        if (Objects.isNull(labelEntityClass)) {
+            throw new CheckedException("必须有声明labelEntity的step");
+        }
+        final VertexDefinition vertexDefinition = VERTEX_DEFINITION_MAP.get(labelEntityClass);
+        final BeanMap beanMap = vertexDefinition.getBeanMap();
+        final List<L> beans = new ArrayList<>();
+        for (Vertex vertex : ((GraphPlusTraversal<S, Vertex, L>) this.asAdmin()).toList()) {
+            final L o = (L) CglibSupport.newInstance(labelEntityClass);
+            for (Map.Entry<String, VertexPropertyDefinition> entry : vertexDefinition.getVertexPropertyDefinitionMap().entrySet()) {
+                final VertexPropertyDefinition vertexPropertyDefinition = entry.getValue();
+                if (vertexPropertyDefinition.isPrimaryKey()) {
+                    beanMap.put(o, entry.getKey(), vertex.id());
+                    continue;
+                }
+                beanMap.put(o, entry.getKey(), vertex.property(entry.getValue().getPropertyName()).orElse(null));
+            }
+            beans.add(o);
+        }
+        return beans;
+    }
+
+    public Set<L> toBeanSet() {
+        final VertexDefinition vertexDefinition = VERTEX_DEFINITION_MAP.get(labelEntityClass);
+        final BeanMap beanMap = vertexDefinition.getBeanMap();
+        final Set<L> beans = new HashSet<>();
+        for (Vertex vertex : ((GraphPlusTraversal<S, Vertex, L>) this.asAdmin()).toSet()) {
+            final L o = (L) CglibSupport.newInstance(labelEntityClass);
+            for (Map.Entry<String, VertexPropertyDefinition> entry : vertexDefinition.getVertexPropertyDefinitionMap().entrySet()) {
+                final VertexPropertyDefinition vertexPropertyDefinition = entry.getValue();
+                if (vertexPropertyDefinition.isPrimaryKey()) {
+                    beanMap.put(o, entry.getKey(), vertex.id());
+                    continue;
+                }
+                beanMap.put(o, entry.getKey(), vertex.property(entry.getValue().getPropertyName()).orElse(null));
+            }
+            beans.add(o);
+        }
+        return beans;
+    }
+
+    public Stream<L> toBeanStream() {
+        return toBeanSet().stream();
     }
 }

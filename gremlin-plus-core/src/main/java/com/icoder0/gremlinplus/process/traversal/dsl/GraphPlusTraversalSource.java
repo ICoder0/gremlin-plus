@@ -24,8 +24,11 @@ import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.apache.tinkerpop.gremlin.structure.util.empty.EmptyGraph;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import static com.icoder0.gremlinplus.process.traversal.toolkit.VertexDefinitionSupport.*;
@@ -35,6 +38,8 @@ import static com.icoder0.gremlinplus.process.traversal.toolkit.VertexDefinition
  * @since 2020/12/5
  */
 public class GraphPlusTraversalSource implements TraversalSource {
+
+    private Logger LOG = LoggerFactory.getLogger(GraphPlusTraversalSource.class);
 
     protected transient RemoteConnection connection;
     protected final Graph graph;
@@ -76,14 +81,26 @@ public class GraphPlusTraversalSource implements TraversalSource {
                 .build()
         );
         final String label = vertexDefinition.getLabel();
+        final BeanMap beanMap = vertexDefinition.getBeanMap();
         final Map<String, VertexPropertyDefinition> vertexPropertyDefinitionMap = vertexDefinition.getVertexPropertyDefinitionMap();
 
+        final long serializablePropertyCount = beanMap.keySet().parallelStream()
+                // 过滤可持久化字段
+                .filter(key -> vertexPropertyDefinitionMap.get(key).isSerializable())
+                .map(key -> beanMap.get(entity, key))
+                // 过滤entity对象非空值字段
+                .filter(Objects::nonNull)
+                .count();
+        if (supportSerializable && serializablePropertyCount == 0){
+            LOG.warn("{} 不存在可持久化数据", entity);
+            return null;
+        }
         final GraphPlusTraversalSource clone = this.clone();
         clone.bytecode.addStep(GraphTraversal.Symbols.addV, label);
         final GraphPlusTraversal<Vertex, Vertex, T> first = new GraphPlusTraversal<>(clone, supportSerializable, (Class<T>) entity.getClass());
 
         final Vertex vertex = first.addStep(new AddVertexStartStep(first, label)).next();
-        final BeanMap beanMap = vertexDefinition.getBeanMap();
+
         for (Object key : beanMap.keySet()) {
             final VertexPropertyDefinition vertexPropertyDefinition = vertexPropertyDefinitionMap.get((String) key);
             // 如果是主键id, 跳过property赋值.
@@ -92,11 +109,11 @@ public class GraphPlusTraversalSource implements TraversalSource {
                 beanMap.put(entity, key, vertex.id());
                 continue;
             }
-            final String propertyName = vertexPropertyDefinition.getPropertyName();
             // 如果该字段不支持持久化且当前graph支持持久化.
             if (supportSerializable && !vertexPropertyDefinition.isSerializable()) {
                 continue;
             }
+            final String propertyName = vertexPropertyDefinition.getPropertyName();
             Optional.ofNullable(beanMap.get(entity, key)).ifPresent(value -> vertex.property(propertyName, value));
         }
         return vertex;

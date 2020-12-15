@@ -39,23 +39,23 @@ public class LambdaSupport {
         Class<?> functionClazz = func.getClass();
         // 支持evaluate expression调试, 走proxy代理, 每次缓存key都不命中, 因此不考虑缓存.
         if (func instanceof Proxy) {
-            final Field field = FieldUtils.getDeclaredField(functionClazz.getSuperclass(), "h", true);
             try {
+                final Field field = FieldUtils.getDeclaredField(functionClazz.getSuperclass(), "h", true);
                 final Object resp0 = field.get(func);
-                Field field2 = FieldUtils.getDeclaredField(resp0.getClass(), "val$target", true);
-                Object resp1 = field2.get(resp0);
-                Field field3 = FieldUtils.getDeclaredField(resp1.getClass(), "member", true);
-                Object resp2 = field3.get(resp1);
-                Field field4 = FieldUtils.getDeclaredField(resp2.getClass(), "name", true);
-                String methodName = (String) field4.get(resp2);
-                Field field5 = FieldUtils.getDeclaredField(resp2.getClass(), "clazz", true);
-                Class<?> clazz = (Class<?>) field5.get(resp2);
+                final Field field2 = FieldUtils.getDeclaredField(resp0.getClass(), "val$target", true);
+                final Object resp1 = field2.get(resp0);
+                final Field field3 = FieldUtils.getDeclaredField(resp1.getClass(), "member", true);
+                final Object resp2 = field3.get(resp1);
+                final Field field4 = FieldUtils.getDeclaredField(resp2.getClass(), "name", true);
+                final String methodName = (String) field4.get(resp2);
+                final Field field5 = FieldUtils.getDeclaredField(resp2.getClass(), "clazz", true);
+                final Class<?> clazz = (Class<?>) field5.get(resp2);
                 return new SerializedLambda(null, null, null,
                         null, 0, clazz.getName(), methodName,
                         null, null, new Object[0]
                 );
             } catch (IllegalAccessException e) {
-                throw new RuntimeException(e);
+                throw ExceptionUtils.gpe(e);
             }
         }
         return Optional.ofNullable(FUNC_CACHE.get(functionClazz))

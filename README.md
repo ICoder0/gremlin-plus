@@ -1,4 +1,3 @@
-# gremlin-plus
 <p align="center">
  <h2 align="center">Gremlin plus</h2>
 </p>

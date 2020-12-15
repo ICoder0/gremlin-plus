@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @VertexLabel("<USER>")
-public class User implements Serializable {
+public class User {
     @VertexId
     private Object id;
     @VertexProperty("[NAME]")

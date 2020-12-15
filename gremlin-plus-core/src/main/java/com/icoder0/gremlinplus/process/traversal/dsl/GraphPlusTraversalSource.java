@@ -2,6 +2,7 @@ package com.icoder0.gremlinplus.process.traversal.dsl;
 
 import com.icoder0.gremlinplus.process.traversal.definition.VertexDefinition;
 import com.icoder0.gremlinplus.process.traversal.definition.VertexPropertyDefinition;
+import com.icoder0.gremlinplus.process.traversal.toolkit.AnnotationSupport;
 import net.sf.cglib.beans.BeanMap;
 import org.apache.tinkerpop.gremlin.process.remote.RemoteConnection;
 import org.apache.tinkerpop.gremlin.process.remote.traversal.strategy.decoration.RemoteStrategy;
@@ -70,12 +71,12 @@ public class GraphPlusTraversalSource implements TraversalSource {
     }
 
     // ************************************************************************
-    //                                Feature
+    //                                New Feature
     // ************************************************************************
     public <T> Vertex addV(T entity) {
         final Class<?> vertexClazz = entity.getClass();
         final VertexDefinition vertexDefinition = VERTEX_DEFINITION_MAP.computeIfAbsent(vertexClazz, ignored -> VertexDefinition.builder()
-                .withLabel(resolveLabel(vertexClazz).orElseThrow(() -> new IllegalArgumentException("Vertex实体类必须声明标签注解GraphLabel")))
+                .withLabel(AnnotationSupport.resolveVertexLabel(vertexClazz))
                 .withVertexPropertyDefinitionMap(resolveProperties(vertexClazz))
                 .withBeanMap(BeanMap.create(entity))
                 .build()
@@ -92,7 +93,7 @@ public class GraphPlusTraversalSource implements TraversalSource {
                 .filter(Objects::nonNull)
                 .count();
         if (supportSerializable && serializablePropertyCount == 0){
-            LOG.warn("{} 不存在可持久化数据", entity);
+            LOG.warn("{} 不存在可持久化字段数据, 因此不落地Vertex", entity);
             return null;
         }
         final GraphPlusTraversalSource clone = this.clone();
@@ -127,7 +128,7 @@ public class GraphPlusTraversalSource implements TraversalSource {
         final BeanMap.Generator generator = new BeanMap.Generator();
         generator.setBeanClass(clazz);
         final VertexDefinition vertexDefinition = VERTEX_DEFINITION_MAP.computeIfAbsent(clazz, ignored -> VertexDefinition.builder()
-                .withLabel(resolveLabel(clazz).orElseThrow(() -> new IllegalArgumentException("Vertex实体类必须声明标签注解GraphLabel")))
+                .withLabel(AnnotationSupport.resolveVertexLabel(clazz))
                 .withVertexPropertyDefinitionMap(resolveProperties(clazz))
                 .withBeanMap(generator.create())
                 .build()
@@ -143,7 +144,7 @@ public class GraphPlusTraversalSource implements TraversalSource {
      */
     public <T> GraphPlusTraversal<Edge, Edge, T> addE(Class<T> clazz) {
         final GraphPlusTraversalSource clone = this.clone();
-        final String label = resolveLabel(clazz).orElseThrow(() -> new IllegalArgumentException("Edge实体类必须声明标签注解GraphLabel"));
+        final String label = AnnotationSupport.resolveEdgeLabel(clazz);
         clone.bytecode.addStep(GraphTraversal.Symbols.addE, label);
         final GraphPlusTraversal<Edge, Edge, T> traversal = new GraphPlusTraversal<>(clone, supportSerializable);
         return (GraphPlusTraversal<Edge, Edge, T>) traversal.addStep(new AddEdgeStartStep(traversal, label));

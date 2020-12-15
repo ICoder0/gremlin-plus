@@ -9,6 +9,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * @author bofa1ex
@@ -152,13 +153,22 @@ public class Application {
         System.out.println(user);
         System.out.println(contacts);
         final List<Script> scripts = graphFacade.traversal(g ->
-                g.V().hasLabel(User.class).has(User::getName, "admin")
+                g.V().hasLabel(User.class).has(User::getName, "123")
                         .out(DefaultEdge.class)
                         .hasLabel(Script.class)
                         .has(Script::getKeywords, P.flatWithin("keyword2", "keyword3"))
                         .toBeanList()
         );
+
+        final Optional<Script> script = graphFacade.traversal(g ->
+                g.V().hasLabel(User.class).has(User::getName, "123")
+                        .out(DefaultEdge.class)
+                        .hasLabel(Script.class)
+                        .has(Script::getKeywords, P.flatWithin("keyword2", "keyword3"))
+                        .tryToBean()
+        );
         System.out.println(scripts);
+        System.out.println(script);
         graphFacade.destroy();
     }
 }

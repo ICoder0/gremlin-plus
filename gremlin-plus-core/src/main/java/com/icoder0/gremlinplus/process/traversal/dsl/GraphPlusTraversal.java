@@ -201,14 +201,22 @@ public class GraphPlusTraversal<S, E, L> extends DefaultTraversal<S, E> implemen
         return this;
     }
 
+    public Optional<L> tryToBean() {
+        try {
+            return Optional.ofNullable(toBean());
+        } catch (ExceptionUtils.CheckedException e) {
+            return Optional.empty();
+        }
+    }
+
     public L toBean() {
         if (Objects.isNull(labelEntityClass)) {
             throw ExceptionUtils.gpe("必须有声明labelEntity的step");
         }
+        final Vertex vertex = ((GraphPlusTraversal<S, Vertex, L>) this.asAdmin()).tryNext().orElseThrow(() -> ExceptionUtils.gpe(String.format("找不到对应{%s}#vertex记录", labelEntityClass.getName())));
         final L o = (L) CglibSupport.newInstance(labelEntityClass);
         final VertexDefinition vertexDefinition = VERTEX_DEFINITION_MAP.get(labelEntityClass);
         final BeanMap beanMap = vertexDefinition.getBeanMap();
-        final Vertex vertex = ((GraphPlusTraversal<S, Vertex, L>) this.asAdmin()).next();
         for (Map.Entry<String, VertexPropertyDefinition> entry : vertexDefinition.getVertexPropertyDefinitionMap().entrySet()) {
             final VertexPropertyDefinition vertexPropertyDefinition = entry.getValue();
             if (vertexPropertyDefinition.isPrimaryKey()) {
@@ -243,6 +251,9 @@ public class GraphPlusTraversal<S, E, L> extends DefaultTraversal<S, E> implemen
     }
 
     public Set<L> toBeanSet() {
+        if (Objects.isNull(labelEntityClass)) {
+            throw ExceptionUtils.gpe("必须有声明labelEntity的step");
+        }
         final VertexDefinition vertexDefinition = VERTEX_DEFINITION_MAP.get(labelEntityClass);
         final BeanMap beanMap = vertexDefinition.getBeanMap();
         final Set<L> beans = new HashSet<>();

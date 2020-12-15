@@ -5,6 +5,7 @@ import com.icoder0.gremlinplus.annotation.VertexId;
 import com.icoder0.gremlinplus.annotation.VertexProperty;
 import com.icoder0.gremlinplus.process.traversal.dsl.GraphPlusTraversalSource;
 import com.icoder0.gremlinplus.process.traversal.function.SerializedFunction;
+import com.icoder0.gremlinplus.process.traversal.toolkit.SerializedFunctionSupport;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
@@ -42,7 +43,7 @@ public class GremlinPlusTest {
         try (GraphPlusTraversalSource traversal = graph.traversal(GraphPlusTraversalSource.class)) {
             final Vertex vertex = traversal.addV(user);
             System.out.println(user);
-            vertex.values(SerializedFunction.method2Properties(User::getName)).forEachRemaining(System.out::println);
+            vertex.values(SerializedFunctionSupport.method2Properties(User::getName)).forEachRemaining(System.out::println);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -58,9 +59,9 @@ public class GremlinPlusTest {
                     .from(traversal.addV(u1))
                     .to(traversal.addV(u2))
                     .tryNext();
-            edgeOpt.map(Edge::inVertex).map(vertex -> vertex.values(SerializedFunction.method2Properties(User::getName, User::getAge)))
+            edgeOpt.map(Edge::inVertex).map(vertex -> vertex.values(SerializedFunctionSupport.method2Properties(User::getName, User::getAge)))
                     .ifPresent(data -> data.forEachRemaining(System.out::println));
-            edgeOpt.map(Edge::outVertex).map(vertex -> vertex.values(SerializedFunction.method2Properties(User::getName, User::getAge)))
+            edgeOpt.map(Edge::outVertex).map(vertex -> vertex.values(SerializedFunctionSupport.method2Properties(User::getName, User::getAge)))
                     .ifPresent(data -> data.forEachRemaining(System.out::println));
         } catch (Exception e) {
             e.printStackTrace();

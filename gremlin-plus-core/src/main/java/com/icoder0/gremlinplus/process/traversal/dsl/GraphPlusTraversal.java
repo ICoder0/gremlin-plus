@@ -2,18 +2,14 @@ package com.icoder0.gremlinplus.process.traversal.dsl;
 
 import com.icoder0.gremlinplus.process.traversal.definition.VertexDefinition;
 import com.icoder0.gremlinplus.process.traversal.definition.VertexPropertyDefinition;
-import com.icoder0.gremlinplus.process.traversal.function.CheckedException;
 import com.icoder0.gremlinplus.process.traversal.function.SerializedFunction;
-import com.icoder0.gremlinplus.process.traversal.toolkit.CglibSupport;
-import com.icoder0.gremlinplus.process.traversal.toolkit.LambdaSupport;
+import com.icoder0.gremlinplus.process.traversal.toolkit.*;
 import net.sf.cglib.beans.BeanMap;
 import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalSource;
-import org.apache.tinkerpop.gremlin.process.traversal.Traverser;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.process.traversal.step.FromToModulating;
-import org.apache.tinkerpop.gremlin.process.traversal.step.filter.LambdaFilterStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.filter.NotStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.filter.TraversalFilterStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.PropertiesStep;
@@ -27,11 +23,9 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import java.lang.invoke.SerializedLambda;
 import java.util.*;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import static com.icoder0.gremlinplus.process.traversal.toolkit.VertexDefinitionSupport.VERTEX_DEFINITION_MAP;
-import static com.icoder0.gremlinplus.process.traversal.toolkit.VertexDefinitionSupport.resolveLabel;
 
 /**
  * @param <S> start
@@ -72,31 +66,28 @@ public class GraphPlusTraversal<S, E, L> extends DefaultTraversal<S, E> implemen
     }
 
     public <R> GraphPlusTraversal<S, E, L> property(final SerializedFunction<L, R> func, final R value, final Object... keyValues) {
-        final SerializedLambda lambda = LambdaSupport.resolve(func);
-        return Optional.ofNullable(SerializedFunction.method2Property(lambda, supportSerializable)).map(key ->
+        return Optional.ofNullable(SerializedFunction.unwrap(func, supportSerializable)).map(key ->
                 (GraphPlusTraversal<S, E, L>) this.property(null, key, value, keyValues)
         ).orElse(this);
     }
 
     public <R> GraphPlusTraversal<S, E, L> property(final SerializedFunction<L, R> func, final Traversal<S, Vertex> vertexTraversal) {
-        final SerializedLambda lambda = LambdaSupport.resolve(func);
         final Object vertexId = vertexTraversal.next().id();
-        return Optional.ofNullable(SerializedFunction.method2Property(lambda, supportSerializable)).map(key ->
+        return Optional.ofNullable(SerializedFunction.unwrap(func, supportSerializable)).map(key ->
                 (GraphPlusTraversal<S, E, L>) this.property(null, key, vertexId, null)
         ).orElse(this);
     }
 
     public <E2> GraphPlusTraversal<S, E2, L> value(final SerializedFunction<L, E2> func) {
-        final SerializedLambda lambda = LambdaSupport.resolve(func);
-        return Optional.ofNullable(SerializedFunction.method2Property(lambda, supportSerializable)).map(key -> {
+        return Optional.ofNullable(SerializedFunction.unwrap(func, supportSerializable)).map(key -> {
             this.asAdmin().getBytecode().addStep(GraphTraversal.Symbols.values, key);
             return (GraphPlusTraversal<S, E2, L>) this.asAdmin().addStep(new PropertiesStep<>(this.asAdmin(), PropertyType.VALUE, key));
         }).orElse((GraphPlusTraversal<S, E2, L>) this);
     }
 
     public GraphPlusTraversal<S, Object, L> values(final SerializedFunction<L, Object>... funcs) {
-        final String[] propertyKeys = Arrays.stream(funcs).map(LambdaSupport::resolve)
-                .map(lambda -> SerializedFunction.method2Property(lambda, supportSerializable))
+        final String[] propertyKeys = Arrays.stream(funcs)
+                .map(func -> SerializedFunction.unwrap(func, supportSerializable))
                 .filter(Objects::nonNull)
                 .toArray(String[]::new);
         this.asAdmin().getBytecode().addStep(GraphTraversal.Symbols.values, (Object[]) propertyKeys);
@@ -105,30 +96,27 @@ public class GraphPlusTraversal<S, E, L> extends DefaultTraversal<S, E> implemen
 
     public <L2> GraphPlusTraversal<S, E, L2> hasLabel(final Class<L2> clazz) {
         this.labelEntityClass = clazz;
-        final String label = resolveLabel(clazz).orElseThrow(() -> new IllegalArgumentException("Vertex实体类必须声明标签注解GraphLabel"));
+        final String label = AnnotationSupport.resolveVertexLabel(clazz);
         this.asAdmin().getBytecode().addStep(GraphTraversal.Symbols.hasLabel, label);
         return (GraphPlusTraversal<S, E, L2>) TraversalHelper.addHasContainer(this.asAdmin(), new HasContainer(org.apache.tinkerpop.gremlin.structure.T.label.getAccessor(), P.eq(label)));
     }
 
     public <R> GraphPlusTraversal<S, E, L> has(final SerializedFunction<L, R> func, final P<R> predicate) {
-        final SerializedLambda lambda = LambdaSupport.resolve(func);
-        return Optional.ofNullable(SerializedFunction.method2Property(lambda, supportSerializable)).map(propertyKey -> {
+        return Optional.ofNullable(SerializedFunction.unwrap(func, supportSerializable)).map(propertyKey -> {
             this.asAdmin().getBytecode().addStep(GraphTraversal.Symbols.has, propertyKey, predicate);
             return (GraphPlusTraversal<S, E, L>) TraversalHelper.addHasContainer(this.asAdmin(), new HasContainer(propertyKey, predicate));
         }).orElse(this);
     }
 
     public <R> GraphPlusTraversal<S, E, L> has(final SerializedFunction<L, R> func) {
-        final SerializedLambda lambda = LambdaSupport.resolve(func);
-        return Optional.ofNullable(SerializedFunction.method2Property(lambda, supportSerializable)).map(propertyKey -> {
+        return Optional.ofNullable(SerializedFunction.unwrap(func, supportSerializable)).map(propertyKey -> {
             this.asAdmin().getBytecode().addStep(GraphTraversal.Symbols.has, propertyKey);
             return (GraphPlusTraversal<S, E, L>) this.asAdmin().addStep(new TraversalFilterStep<>(this.asAdmin(), __.values(propertyKey)));
         }).orElse(this);
     }
 
     public <R> GraphPlusTraversal<S, E, L> has(final SerializedFunction<L, R> func, final Object value) {
-        final SerializedLambda lambda = LambdaSupport.resolve(func);
-        final String propertyKey = SerializedFunction.method2Property(lambda, supportSerializable);
+        final String propertyKey = SerializedFunction.unwrap(func, supportSerializable);
         if (propertyKey != null) {
             if (value instanceof P)
                 return (GraphPlusTraversal<S, E, L>) this.has(propertyKey, (P<R>) value);
@@ -143,26 +131,23 @@ public class GraphPlusTraversal<S, E, L> extends DefaultTraversal<S, E> implemen
     }
 
     public <R> GraphPlusTraversal<S, E, L> has(final Class<L> labelClazz, final SerializedFunction<L, R> func, final P<R> predicate) {
-        final String label = resolveLabel(labelClazz).orElseThrow(() -> new IllegalArgumentException("Vertex实体类必须声明标签注解GraphLabel"));
-        final SerializedLambda lambda = LambdaSupport.resolve(func);
-        return Optional.ofNullable(SerializedFunction.method2Property(lambda, supportSerializable)).map(propertyKey -> {
+        final String label = AnnotationSupport.resolveLabel(labelClazz);
+        return Optional.ofNullable(SerializedFunction.unwrap(func, supportSerializable)).map(propertyKey -> {
             this.asAdmin().getBytecode().addStep(GraphTraversal.Symbols.has, label, propertyKey, predicate);
             return (GraphPlusTraversal<S, E, L>) TraversalHelper.addHasContainer(this.asAdmin(), new HasContainer(propertyKey, predicate));
         }).orElse(this);
     }
 
     public <R> GraphPlusTraversal<S, E, L> has(final Class<L> labelClazz, final SerializedFunction<L, R> func, final R value) {
-        final String label = resolveLabel(labelClazz).orElseThrow(() -> new IllegalArgumentException("Vertex实体类必须声明标签注解GraphLabel"));
-        final SerializedLambda lambda = LambdaSupport.resolve(func);
-        return Optional.ofNullable(SerializedFunction.method2Property(lambda, supportSerializable)).map(propertyKey -> {
+        final String label = AnnotationSupport.resolveLabel(labelClazz);
+        return Optional.ofNullable(SerializedFunction.unwrap(func, supportSerializable)).map(propertyKey -> {
             this.asAdmin().getBytecode().addStep(GraphTraversal.Symbols.has, label, propertyKey, value);
             return (GraphPlusTraversal<S, E, L>) TraversalHelper.addHasContainer(this.asAdmin(), new HasContainer(propertyKey, value instanceof P ? (P<R>) value : P.eq(value)));
         }).orElse(this);
     }
 
     public <R> GraphPlusTraversal<S, E, L> has(final SerializedFunction<L, R> func, final Traversal<S, E> propertyTraversal) {
-        final SerializedLambda lambda = LambdaSupport.resolve(func);
-        return Optional.ofNullable(SerializedFunction.method2Property(lambda, supportSerializable)).map(propertyKey -> {
+        return Optional.ofNullable(SerializedFunction.unwrap(func, supportSerializable)).map(propertyKey -> {
             this.asAdmin().getBytecode().addStep(GraphTraversal.Symbols.has, propertyKey, propertyTraversal);
             return (GraphPlusTraversal<S, E, L>) this.asAdmin().addStep(
                     new TraversalFilterStep<>(this.asAdmin(), propertyTraversal.asAdmin().addStep(0,
@@ -172,27 +157,26 @@ public class GraphPlusTraversal<S, E, L> extends DefaultTraversal<S, E> implemen
     }
 
     public <R> GraphPlusTraversal<S, E, L> hasNot(final SerializedFunction<L, R> func) {
-        final SerializedLambda lambda = LambdaSupport.resolve(func);
-        return Optional.ofNullable(SerializedFunction.method2Property(lambda, supportSerializable)).map(propertyKey -> {
+        return Optional.ofNullable(SerializedFunction.unwrap(func, supportSerializable)).map(propertyKey -> {
             this.asAdmin().getBytecode().addStep(GraphTraversal.Symbols.hasNot, propertyKey);
             return (GraphPlusTraversal<S, E, L>) this.asAdmin().addStep(new NotStep<>(this.asAdmin(), __.values(propertyKey)));
         }).orElse(this);
     }
 
     public GraphPlusTraversal<S, Vertex, L> out(final Class<?> edgeClass) {
-        final String edgeLabel = resolveLabel(edgeClass).orElseThrow(() -> new IllegalArgumentException("Vertex实体类必须声明标签注解GraphLabel"));
+        final String edgeLabel = AnnotationSupport.resolveEdgeLabel(edgeClass);
         this.asAdmin().getBytecode().addStep(GraphTraversal.Symbols.out, edgeLabel);
         return (GraphPlusTraversal<S, Vertex, L>) this.asAdmin().addStep(new VertexStep<>(this.asAdmin(), Vertex.class, Direction.OUT, edgeLabel));
     }
 
     public GraphPlusTraversal<S, Vertex, L> in(final Class<?> edgeClass) {
-        final String edgeLabel = resolveLabel(edgeClass).orElseThrow(() -> new IllegalArgumentException("Vertex实体类必须声明标签注解GraphLabel"));
+        final String edgeLabel = AnnotationSupport.resolveEdgeLabel(edgeClass);
         this.asAdmin().getBytecode().addStep(GraphTraversal.Symbols.in, edgeLabel);
         return (GraphPlusTraversal<S, Vertex, L>) this.asAdmin().addStep(new VertexStep<>(this.asAdmin(), Vertex.class, Direction.IN, edgeLabel));
     }
 
     public GraphPlusTraversal<S, Vertex, L> both(final Class<?> edgeClass) {
-        final String edgeLabel = resolveLabel(edgeClass).orElseThrow(() -> new IllegalArgumentException("Vertex实体类必须声明标签注解GraphLabel"));
+        final String edgeLabel = AnnotationSupport.resolveEdgeLabel(edgeClass);
         this.asAdmin().getBytecode().addStep(GraphTraversal.Symbols.both, edgeLabel);
         return (GraphPlusTraversal<S, Vertex, L>) this.asAdmin().addStep(new VertexStep<>(this.asAdmin(), Vertex.class, Direction.BOTH, edgeLabel));
     }
@@ -219,7 +203,7 @@ public class GraphPlusTraversal<S, E, L> extends DefaultTraversal<S, E> implemen
 
     public L toBean() {
         if (Objects.isNull(labelEntityClass)) {
-            throw new CheckedException("必须有声明labelEntity的step");
+            throw ExceptionUtils.gpe("必须有声明labelEntity的step");
         }
         final L o = (L) CglibSupport.newInstance(labelEntityClass);
         final VertexDefinition vertexDefinition = VERTEX_DEFINITION_MAP.get(labelEntityClass);
@@ -238,7 +222,7 @@ public class GraphPlusTraversal<S, E, L> extends DefaultTraversal<S, E> implemen
 
     public List<L> toBeanList() {
         if (Objects.isNull(labelEntityClass)) {
-            throw new CheckedException("必须有声明labelEntity的step");
+            throw ExceptionUtils.gpe("必须有声明labelEntity的step");
         }
         final VertexDefinition vertexDefinition = VERTEX_DEFINITION_MAP.get(labelEntityClass);
         final BeanMap beanMap = vertexDefinition.getBeanMap();

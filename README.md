@@ -41,4 +41,4 @@ public class Solution {
 ```
 更多samples参见example模块, 若有更多需求, 欢迎提issue/pr.
 
-[![Anurag's github stats](https://github-readme-stats.vercel.app/api?username=bofa1ex&hide=contribs,prs&show_icons=true&theme=radical)](https://github.com/anuraghazra/github-readme-stats)
+[![Anurag's github stats](https://github-readme-stats.vercel.app/api?username=bofa1ex&hide=stars,contribs,prs&show_icons=true&theme=radical)](https://github.com/anuraghazra/github-readme-stats)

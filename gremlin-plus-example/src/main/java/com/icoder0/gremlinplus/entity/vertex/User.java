@@ -1,7 +1,7 @@
 package com.icoder0.gremlinplus.entity.vertex;
 
-import com.icoder0.gremlinplus.annotation.GraphLabel;
 import com.icoder0.gremlinplus.annotation.VertexId;
+import com.icoder0.gremlinplus.annotation.VertexLabel;
 import com.icoder0.gremlinplus.annotation.VertexProperty;
 import lombok.*;
 
@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@GraphLabel("<USER>")
+@VertexLabel("<USER>")
 public class User implements Serializable {
     @VertexId
     private Object id;

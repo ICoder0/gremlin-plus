@@ -3,8 +3,10 @@ package com.icoder0.gremlinplus.entity.vertex;
 import com.icoder0.gremlinplus.annotation.GraphLabel;
 import com.icoder0.gremlinplus.annotation.VertexId;
 import com.icoder0.gremlinplus.annotation.VertexProperty;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
@@ -14,6 +16,8 @@ import java.time.LocalDateTime;
  */
 @Data
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
 @GraphLabel
 public class Record {
     @VertexId

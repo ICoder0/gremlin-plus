@@ -3,16 +3,12 @@ package com.icoder0.gremlinplus;
 import com.icoder0.gremlinplus.entity.edge.DefaultEdge;
 import com.icoder0.gremlinplus.entity.edge.LockEdge;
 import com.icoder0.gremlinplus.entity.vertex.*;
-import com.icoder0.gremlinplus.process.traversal.dsl.Flat;
 import com.icoder0.gremlinplus.process.traversal.dsl.P;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
-import java.util.function.BiPredicate;
 
 /**
  * @author bofa1ex
@@ -21,6 +17,10 @@ import java.util.function.BiPredicate;
 public class Application {
     public static void main(String[] args) {
         final GraphFacade graphFacade = GraphFacade.INSTANCE;
+        final Object sessionPrototype = new Object();
+        final Session session = Session.builder()
+                .prototype(sessionPrototype)
+                .build();
         graphFacade.traversalCommit(g -> {
             final Vertex userVertex = g.addV(User.builder()
                     .pwd("admin")
@@ -62,22 +62,20 @@ public class Application {
                     .build()
             );
             final Vertex groupVertex = g.addV(Group.builder()
-                            .name("房间1")
-//                    .groupSetting(GroupSetting.builder()
-//                            .entranceAnnouncement("demo")
-//                            .build()
-//                    )
-                            .account(123L)
-                            .avatarUrl("demo")
-                            .isDelete((byte) 1)
-                            .createTime(LocalDateTime.now())
-                            .updateTime(LocalDateTime.now())
+                    .name("房间1")
+                    .groupSetting(GroupSetting.builder()
+                            .entranceAnnouncement("demo")
                             .build()
-            );
-            final Vertex sessionVertex = g.addV(Session.builder()
-                    .prototype(new Object())
+                    )
+                    .account(123L)
+                    .avatarUrl("demo")
+                    .isDelete((byte) 1)
+                    .createTime(LocalDateTime.now())
+                    .updateTime(LocalDateTime.now())
                     .build()
             );
+
+            final Vertex sessionVertex = g.addV(session);
             final Vertex scriptVertex1 = g.addV(Script.builder()
                     .content("demo")
                     .env("demo env")
@@ -143,9 +141,13 @@ public class Application {
         final User user = graphFacade.traversal(g -> g.V().hasLabel(User.class).has(User::getName, "admin").toBean());
         // 获取Proxy对象中的此字段的值
         final List<Contact> contacts = graphFacade.traversal(g ->
-                g.V().hasLabel(User.class).has(User::getName, "admin")
+                g.V().hasLabel(Session.class)
+                        .has(Session::getPrototype, sessionPrototype)
+                        .in(DefaultEdge.class)
+                        .hasLabel(User.class)
                         .out(DefaultEdge.class)
-                        .hasLabel(Contact.class).toBeanList()
+                        .hasLabel(Contact.class)
+                        .toBeanList()
         );
         System.out.println(user);
         System.out.println(contacts);

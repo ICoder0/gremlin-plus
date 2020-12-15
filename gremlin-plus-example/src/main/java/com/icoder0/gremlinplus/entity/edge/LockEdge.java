@@ -6,6 +6,6 @@ import com.icoder0.gremlinplus.annotation.GraphLabel;
  * @author bofa1ex
  * @since 2020/12/10
  */
-@GraphLabel("<LOCK")
+@GraphLabel(value = "<LOCK", vertex = false)
 public class LockEdge {
 }

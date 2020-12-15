@@ -9,9 +9,11 @@
 </p>
 
 解决常量类管理vertex/edge#label以及property的问题.
+
 看了相关的ogm(ferma、spring-data-xx)的api和思路.
 
 个人倾向mybatis-plus的api, jpa方面声明式的api对于图数据库的遍历不够灵活. 
+
 > mybatis-plus的serializedLambda内部resolve方法不支持evaluate expression调试, 该问题在gremlin-plus已解决.
 
 ```java

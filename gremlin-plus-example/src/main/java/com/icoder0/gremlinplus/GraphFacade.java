@@ -48,13 +48,16 @@ public class GraphFacade {
             log.error("memory orientdb 执行异常", e);
         }
         final OrientGraph localGraph = _getOrientGraph(false);
-        for (; ; ) {
+        for (int i = 0; i < 5; i++) {
             try (final GraphPlusTraversalSource traversal = localGraph.traversal(GraphPlusTraversalSource.class).supportSerializable()) {
                 func.apply(traversal);
                 localGraph.commit();
                 break;
             } catch (Exception e) {
                 log.error("local orientdb commit执行异常", e);
+                if (i == 4){
+                    log.warn("{} 持久落地失败, 请检查数据", resp);
+                }
                 localGraph.rollback();
                 localGraph.begin();
             }

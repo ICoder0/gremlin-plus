@@ -22,7 +22,7 @@ public class Application {
         final Session session = Session.builder()
                 .prototype(sessionPrototype)
                 .build();
-        graphFacade.traversalCommit(g -> {
+        graphFacade.commit(g -> {
             final Vertex userVertex = g.addV(User.builder()
                     .pwd("admin")
                     .name("admin")
@@ -137,38 +137,30 @@ public class Application {
                     .from(botVertex1)
                     .to(sessionVertex)
                     .tryNext();
-            return null;
         });
-        final User user = graphFacade.traversal(g -> g.V().hasLabel(User.class).has(User::getName, "admin").toBean());
+        final User user = graphFacade.traversal().V().hasLabel(User.class).has(User::getName, "admin").toBean();
         // 获取Proxy对象中的此字段的值
-        final List<Contact> contacts = graphFacade.traversal(g ->
-                g.V().hasLabel(Session.class)
-                        .has(Session::getPrototype, sessionPrototype)
-                        .in(DefaultEdge.class)
-                        .hasLabel(User.class)
-                        .out(DefaultEdge.class)
-                        .hasLabel(Contact.class)
-                        .toBeanList()
-        );
+        final List<Contact> contacts = graphFacade.traversal().V().hasLabel(Session.class)
+                .has(Session::getPrototype, sessionPrototype)
+                .in(DefaultEdge.class)
+                .hasLabel(User.class)
+                .out(DefaultEdge.class)
+                .hasLabel(Contact.class)
+                .toBeanList();
         System.out.println(user);
         System.out.println(contacts);
-        final List<Script> scripts = graphFacade.traversal(g ->
-                g.V().hasLabel(User.class).has(User::getName, "123")
-                        .out(DefaultEdge.class)
-                        .hasLabel(Script.class)
-                        .has(Script::getKeywords, P.flatWithin("keyword2", "keyword3"))
-                        .toBeanList()
-        );
-
-        final Optional<Script> script = graphFacade.traversal(g ->
-                g.V().hasLabel(User.class).has(User::getName, "123")
-                        .out(DefaultEdge.class)
-                        .hasLabel(Script.class)
-                        .has(Script::getKeywords, P.flatWithin("keyword2", "keyword3"))
-                        .tryToBean()
-        );
+        final List<Script> scripts = graphFacade.traversal().V().hasLabel(User.class).has(User::getName, "123")
+                .out(DefaultEdge.class)
+                .hasLabel(Script.class)
+                .has(Script::getKeywords, P.flatWithin("keyword2", "keyword3"))
+                .toBeanList();
+        final Optional<Script> scriptOpt = graphFacade.traversal().V().hasLabel(User.class).has(User::getName, "123")
+                .out(DefaultEdge.class)
+                .hasLabel(Script.class)
+                .has(Script::getKeywords, P.flatWithin("keyword2", "keyword3"))
+                .tryToBean();
         System.out.println(scripts);
-        System.out.println(script);
+        System.out.println(scriptOpt);
         graphFacade.destroy();
     }
 }

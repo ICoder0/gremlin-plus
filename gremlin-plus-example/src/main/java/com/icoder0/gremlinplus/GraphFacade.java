@@ -6,10 +6,14 @@ import com.orientechnologies.common.log.OLogManager;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tinkerpop.gremlin.orientdb.OrientGraph;
 import org.apache.tinkerpop.gremlin.orientdb.OrientGraphFactory;
+import org.apache.tinkerpop.gremlin.process.traversal.TraversalSource;
 
 import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -27,12 +31,13 @@ public class GraphFacade {
     @Getter(AccessLevel.PRIVATE)
     private final OrientGraph memoryOrient;
 
-    private final OrientGraphFactory localOrientGraphFactory;
+    @Getter(AccessLevel.PRIVATE)
+    private final OrientGraph localOrient;
 
-    private final ThreadLocal<OrientGraph> localOrientGraphs = new ThreadLocal<>();
+    private final ThreadLocal<Pair<GraphPlusTraversalSource, GraphPlusTraversalSource>> traversalSources = new ThreadLocal<>();
 
     {
-        localOrientGraphFactory = new OrientGraphFactory("plocal:./data/orient");
+        localOrient = new OrientGraphFactory("plocal:./data/orient").getTx();
         memoryOrient = new OrientGraphFactory("memory:orient").getTx();
         // 关闭orientdb日志打印.
         OLogManager.instance().setDebugEnabled(false);
@@ -40,59 +45,65 @@ public class GraphFacade {
         OLogManager.instance().setErrorEnabled(false);
     }
 
-    public <D> D traversalCommit(Function<GraphPlusTraversalSource, D> func) {
-        D resp = null;
-        try (final GraphPlusTraversalSource traversal = _getOrientGraph().traversal(GraphPlusTraversalSource.class)) {
-            resp = func.apply(traversal);
-        } catch (Exception e) {
-            log.error("memory orientdb 执行异常", e);
-        }
-        final OrientGraph localGraph = _getOrientGraph(false);
+    public void commit(Consumer<GraphPlusTraversalSource> consumer) {
+        consumer.accept(_getTraversalSource());
         for (int i = 0; i < 5; i++) {
-            try (final GraphPlusTraversalSource traversal = localGraph.traversal(GraphPlusTraversalSource.class).supportSerializable()) {
-                func.apply(traversal);
-                localGraph.commit();
+            try {
+                consumer.accept(_getTraversalSource(false));
+                localOrient.commit();
                 break;
             } catch (Exception e) {
                 log.error("local orientdb commit执行异常", e);
-                if (i == 4){
+                if (i == 4) {
+                    log.warn("持久落地失败, 请检查数据");
+                }
+                localOrient.rollback();
+                localOrient.begin();
+            }
+        }
+    }
+
+    public <D> D commit(Function<GraphPlusTraversalSource, D> func) {
+        D resp = null;
+        resp = func.apply(_getTraversalSource());
+        for (int i = 0; i < 5; i++) {
+            try {
+                func.apply(_getTraversalSource(false));
+                localOrient.commit();
+            } catch (Exception e) {
+                log.error("local orientdb commit执行异常", e);
+                if (i == 4) {
                     log.warn("{} 持久落地失败, 请检查数据", resp);
                 }
-                localGraph.rollback();
-                localGraph.begin();
+                localOrient.rollback();
+                localOrient.begin();
             }
         }
         return resp;
     }
 
-    public <D> D traversal(Function<GraphPlusTraversalSource, D> func) {
-        D resp = null;
-        try (final GraphPlusTraversalSource traversal = _getOrientGraph().traversal(GraphPlusTraversalSource.class)) {
-            resp = func.apply(traversal);
-        } catch (Exception e) {
-            log.error("memory orientdb 执行异常", e);
-        }
-        return resp;
+    public GraphPlusTraversalSource traversal() {
+        return _getTraversalSource();
     }
 
-    private OrientGraph _getOrientGraph() {
-        return _getOrientGraph(true);
+    private GraphPlusTraversalSource _getTraversalSource() {
+        return _getTraversalSource(true);
     }
 
-    private OrientGraph _getOrientGraph(boolean memory) {
-        if (memory) {
-            return memoryOrient;
+    private GraphPlusTraversalSource _getTraversalSource(boolean memory) {
+        Pair<GraphPlusTraversalSource, GraphPlusTraversalSource> traversalSourcePair = traversalSources.get();
+        if (Objects.isNull(traversalSourcePair)) {
+            traversalSourcePair = Pair.of(
+                    memoryOrient.traversal(GraphPlusTraversalSource.class),
+                    localOrient.traversal(GraphPlusTraversalSource.class).supportSerializable()
+            );
+            traversalSources.set(traversalSourcePair);
         }
-        OrientGraph orientGraph = localOrientGraphs.get();
-        if (Objects.isNull(orientGraph)) {
-            orientGraph = localOrientGraphFactory.getTx();
-            localOrientGraphs.set(orientGraph);
-        }
-        return orientGraph;
+        return memory ? traversalSourcePair.getLeft() : traversalSourcePair.getRight();
     }
 
-    public void destroy(){
+    public void destroy() {
         memoryOrient.close();
-        localOrientGraphFactory.close();
+        localOrient.close();
     }
 }

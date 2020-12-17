@@ -10,12 +10,9 @@ import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.Bytecode;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategies;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.DefaultGraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.AddEdgeStartStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.AddVertexStartStep;
-import org.apache.tinkerpop.gremlin.process.traversal.step.map.AddVertexStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.GraphStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.sideEffect.InjectStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.sideEffect.IoStep;
@@ -32,7 +29,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-import static com.icoder0.gremlinplus.process.traversal.toolkit.VertexDefinitionSupport.*;
+import static com.icoder0.gremlinplus.process.traversal.toolkit.VertexDefinitionSupport.VERTEX_DEFINITION_MAP;
+import static com.icoder0.gremlinplus.process.traversal.toolkit.VertexDefinitionSupport.resolveProperties;
 
 /**
  * @author bofa1ex
@@ -40,7 +38,7 @@ import static com.icoder0.gremlinplus.process.traversal.toolkit.VertexDefinition
  */
 public class GraphPlusTraversalSource implements TraversalSource {
 
-    private Logger LOG = LoggerFactory.getLogger(GraphPlusTraversalSource.class);
+    private final Logger LOG = LoggerFactory.getLogger(GraphPlusTraversalSource.class);
 
     protected transient RemoteConnection connection;
     protected final Graph graph;
@@ -164,22 +162,22 @@ public class GraphPlusTraversalSource implements TraversalSource {
      * Spawns a {@link GraphTraversal} starting with all vertices or some subset of vertices as specified by their
      * unique identifier.
      */
-    public GraphPlusTraversal<Vertex, Vertex, ?> V(final Object... vertexIds) {
+    public <T> GraphPlusTraversal<Vertex, Vertex, T> V(final Object... vertexIds) {
         final GraphPlusTraversalSource clone = this.clone();
         clone.bytecode.addStep(GraphTraversal.Symbols.V, vertexIds);
-        final GraphPlusTraversal<Vertex, Vertex, ?> traversal = new GraphPlusTraversal<>(clone, supportSerializable);
-        return (GraphPlusTraversal<Vertex, Vertex, ?>) traversal.addStep(new GraphStep<>(traversal, Vertex.class, true, vertexIds));
+        final GraphPlusTraversal<Vertex, Vertex, T> traversal = new GraphPlusTraversal<>(clone, supportSerializable);
+        return (GraphPlusTraversal<Vertex, Vertex, T>) traversal.addStep(new GraphStep<>(traversal, Vertex.class, true, vertexIds));
     }
 
     /**
      * Spawns a {@link GraphTraversal} starting with all edges or some subset of edges as specified by their unique
      * identifier.
      */
-    public GraphPlusTraversal<Edge, Edge, ?> E(final Object... edgesIds) {
+    public <T> GraphPlusTraversal<Edge, Edge, T> E(final Object... edgesIds) {
         final GraphPlusTraversalSource clone = this.clone();
         clone.bytecode.addStep(GraphTraversal.Symbols.E, edgesIds);
-        final GraphPlusTraversal<Edge, Edge, ?> traversal = new GraphPlusTraversal<>(clone, supportSerializable);
-        return (GraphPlusTraversal<Edge, Edge, ?>) traversal.addStep(new GraphStep<>(traversal, Edge.class, true, edgesIds));
+        final GraphPlusTraversal<Edge, Edge, T> traversal = new GraphPlusTraversal<>(clone, supportSerializable);
+        return (GraphPlusTraversal<Edge, Edge, T>) traversal.addStep(new GraphStep<>(traversal, Edge.class, true, edgesIds));
     }
 
     /**

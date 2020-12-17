@@ -5,6 +5,7 @@ import com.icoder0.gremlinplus.process.traversal.definition.VertexPropertyDefini
 import com.icoder0.gremlinplus.process.traversal.function.SerializedFunction;
 import com.icoder0.gremlinplus.process.traversal.toolkit.*;
 import net.sf.cglib.beans.BeanMap;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
@@ -21,7 +22,6 @@ import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.PropertyType;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
-import java.lang.invoke.SerializedLambda;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -209,6 +209,25 @@ public class GraphPlusTraversal<S, E, L> extends DefaultTraversal<S, E> implemen
         }
     }
 
+    public Pair<L, Vertex> toPair(){
+        if (Objects.isNull(labelEntityClass)) {
+            throw ExceptionUtils.gpe("必须有声明labelEntity的step");
+        }
+        final Vertex vertex = ((GraphPlusTraversal<S, Vertex, L>) this.asAdmin()).tryNext().orElseThrow(() -> ExceptionUtils.gpe(String.format("找不到对应{%s}#vertex记录", labelEntityClass.getName())));
+        final L o = (L) CglibSupport.newInstance(labelEntityClass);
+        final VertexDefinition vertexDefinition = VERTEX_DEFINITION_MAP.get(labelEntityClass);
+        final BeanMap beanMap = vertexDefinition.getBeanMap();
+        for (Map.Entry<String, VertexPropertyDefinition> entry : vertexDefinition.getVertexPropertyDefinitionMap().entrySet()) {
+            final VertexPropertyDefinition vertexPropertyDefinition = entry.getValue();
+            if (vertexPropertyDefinition.isPrimaryKey()) {
+                beanMap.put(o, entry.getKey(), vertex.id());
+                continue;
+            }
+            beanMap.put(o, entry.getKey(), vertex.property(entry.getValue().getPropertyName()).orElse(null));
+        }
+        return Pair.of(o, vertex);
+    }
+
     public L toBean() {
         if (Objects.isNull(labelEntityClass)) {
             throw ExceptionUtils.gpe("必须有声明labelEntity的step");
@@ -226,6 +245,28 @@ public class GraphPlusTraversal<S, E, L> extends DefaultTraversal<S, E> implemen
             beanMap.put(o, entry.getKey(), vertex.property(entry.getValue().getPropertyName()).orElse(null));
         }
         return o;
+    }
+
+    public List<Pair<L,Vertex>> toPairList(){
+        if (Objects.isNull(labelEntityClass)) {
+            throw ExceptionUtils.gpe("必须有声明labelEntity的step");
+        }
+        final VertexDefinition vertexDefinition = VERTEX_DEFINITION_MAP.get(labelEntityClass);
+        final BeanMap beanMap = vertexDefinition.getBeanMap();
+        final List<Pair<L, Vertex>> pairs = new ArrayList<>();
+        for (Vertex vertex : ((GraphPlusTraversal<S, Vertex, L>) this.asAdmin()).toList()) {
+            final L o = (L) CglibSupport.newInstance(labelEntityClass);
+            for (Map.Entry<String, VertexPropertyDefinition> entry : vertexDefinition.getVertexPropertyDefinitionMap().entrySet()) {
+                final VertexPropertyDefinition vertexPropertyDefinition = entry.getValue();
+                if (vertexPropertyDefinition.isPrimaryKey()) {
+                    beanMap.put(o, entry.getKey(), vertex.id());
+                    continue;
+                }
+                beanMap.put(o, entry.getKey(), vertex.property(entry.getValue().getPropertyName()).orElse(null));
+            }
+            pairs.add(Pair.of(o, vertex));
+        }
+        return pairs;
     }
 
     public List<L> toBeanList() {
@@ -250,6 +291,28 @@ public class GraphPlusTraversal<S, E, L> extends DefaultTraversal<S, E> implemen
         return beans;
     }
 
+    public Set<Pair<L,Vertex>> toPairSet(){
+        if (Objects.isNull(labelEntityClass)) {
+            throw ExceptionUtils.gpe("必须有声明labelEntity的step");
+        }
+        final VertexDefinition vertexDefinition = VERTEX_DEFINITION_MAP.get(labelEntityClass);
+        final BeanMap beanMap = vertexDefinition.getBeanMap();
+        final Set<Pair<L, Vertex>> pairs = new HashSet<>();
+        for (Vertex vertex : ((GraphPlusTraversal<S, Vertex, L>) this.asAdmin()).toList()) {
+            final L o = (L) CglibSupport.newInstance(labelEntityClass);
+            for (Map.Entry<String, VertexPropertyDefinition> entry : vertexDefinition.getVertexPropertyDefinitionMap().entrySet()) {
+                final VertexPropertyDefinition vertexPropertyDefinition = entry.getValue();
+                if (vertexPropertyDefinition.isPrimaryKey()) {
+                    beanMap.put(o, entry.getKey(), vertex.id());
+                    continue;
+                }
+                beanMap.put(o, entry.getKey(), vertex.property(entry.getValue().getPropertyName()).orElse(null));
+            }
+            pairs.add(Pair.of(o, vertex));
+        }
+        return pairs;
+    }
+
     public Set<L> toBeanSet() {
         if (Objects.isNull(labelEntityClass)) {
             throw ExceptionUtils.gpe("必须有声明labelEntity的step");
@@ -270,6 +333,10 @@ public class GraphPlusTraversal<S, E, L> extends DefaultTraversal<S, E> implemen
             beans.add(o);
         }
         return beans;
+    }
+
+    public Stream<Pair<L,Vertex>> toPairStream(){
+        return toPairSet().stream();
     }
 
     public Stream<L> toBeanStream() {

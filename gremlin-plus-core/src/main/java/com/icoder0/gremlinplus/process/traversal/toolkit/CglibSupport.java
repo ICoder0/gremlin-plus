@@ -16,7 +16,7 @@ public class CglibSupport {
         } catch (InvocationTargetException e) {
             throw ExceptionUtils.gpe(String.format("{%s}反射调用失败", clazz.getName()));
         } catch (IllegalArgumentException e){
-            throw ExceptionUtils.gpe(String.format("检查{%s} 构造函数是否提供空构造入口", clazz.getName()));
+            throw ExceptionUtils.gpe(String.format("检查{%s}构造函数是否提供空构造入口", clazz.getName()));
         }
     }
 }

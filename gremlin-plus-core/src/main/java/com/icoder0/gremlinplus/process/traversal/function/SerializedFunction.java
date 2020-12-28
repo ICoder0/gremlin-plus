@@ -3,6 +3,7 @@ package com.icoder0.gremlinplus.process.traversal.function;
 
 import com.icoder0.gremlinplus.process.traversal.toolkit.LambdaSupport;
 import com.icoder0.gremlinplus.process.traversal.toolkit.SerializedFunctionSupport;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.io.Serializable;
 import java.util.function.Function;
@@ -14,11 +15,11 @@ import java.util.function.Function;
 @FunctionalInterface
 public interface SerializedFunction<T, R> extends Function<T, R>, Serializable {
 
-    static <T, R> String unwrap(SerializedFunction<T, R> func) {
-        return unwrap(func, false);
+    static <T, R> Pair<String, Object> unwrapKeyPair(SerializedFunction<T, R> func) {
+        return SerializedFunctionSupport.method2PropertyKeyPair(LambdaSupport.resolve(func));
     }
 
-    static <T, R> String unwrap(SerializedFunction<T, R> func, boolean supportSerializable) {
-        return SerializedFunctionSupport.method2Property(LambdaSupport.resolve(func), supportSerializable);
+    static <T, R> Pair<String, Boolean> unwrapBoolPair(SerializedFunction<T, R> func) {
+        return SerializedFunctionSupport.method2PropertyBoolPair(LambdaSupport.resolve(func));
     }
 }

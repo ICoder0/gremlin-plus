@@ -12,15 +12,16 @@ import java.util.Optional;
  */
 public class AnnotationSupport {
 
-    public static boolean checkVertexId(Field field) {
-        return field.getAnnotation(VertexId.class) != null;
+    public static boolean checkVertexIdNotExist(Field field) {
+        return field.getAnnotation(VertexId.class) == null;
     }
 
     public static VertexPropertyDefinition resolveVertexProperty(Field field) {
-        return Optional.ofNullable(field.getAnnotation(VertexProperty.class)).map(vertexProperty -> VertexPropertyDefinition.builder()
-                .withPropertyName(vertexProperty.value())
-                .withSerializable(vertexProperty.serializable())
-                .build())
+        return Optional.ofNullable(field.getAnnotation(VertexProperty.class))
+                .map(vertexProperty -> VertexPropertyDefinition.builder()
+                        .withPropertyName(vertexProperty.value())
+                        .withSerializable(vertexProperty.serializable())
+                        .build())
                 .orElse(VertexPropertyDefinition.builder()
                         .withPropertyName(field.getName())
                         .withSerializable(true)

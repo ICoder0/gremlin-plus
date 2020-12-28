@@ -16,24 +16,29 @@ public class VertexDefinitionSupport {
 
     public static final Map<Class<?>, VertexDefinition> VERTEX_DEFINITION_MAP = new ConcurrentHashMap<>();
 
+    public static final Map<Object, Object> VERTEX_UNSERIALIZED_MAP = new ConcurrentHashMap<>();
+
     public static Map<String, VertexPropertyDefinition> resolveProperties(Class<?> clazz) {
         final Field[] fields = clazz.getDeclaredFields();
         Field primaryKeyField = null;
         final Map<String, VertexPropertyDefinition> vertexPropertyDefinitionMap = new HashMap<>();
         for (Field field : fields) {
-            if (AnnotationSupport.checkVertexId(field)) {
-                if (primaryKeyField != null) {
-                    throw ExceptionUtils.gpe(new IllegalArgumentException(String.format("{%s} @VertexId不可以声明多个字段", clazz.getName())));
-                }
-                primaryKeyField = field;
-                vertexPropertyDefinitionMap.put(primaryKeyField.getName(), VertexPropertyDefinition.builder()
-                        .withPrimaryKey(true)
-                        .build()
-                );
+            if (AnnotationSupport.checkVertexIdNotExist(field)) {
+                vertexPropertyDefinitionMap.put(field.getName(), AnnotationSupport.resolveVertexProperty(field));
+                continue;
             }
-            vertexPropertyDefinitionMap.put(field.getName(), AnnotationSupport.resolveVertexProperty(field));
+            if (primaryKeyField != null) {
+                throw ExceptionUtils.gpe(new IllegalArgumentException(String.format("{%s} @VertexId不可以声明多个字段", clazz.getName())));
+            }
+            primaryKeyField = field;
+            vertexPropertyDefinitionMap.put(primaryKeyField.getName(), VertexPropertyDefinition.builder()
+                    .withPropertyName(field.getName())
+                    .withPrimaryKey(true)
+                    .withSerializable(true)
+                    .build()
+            );
         }
-        if (primaryKeyField == null){
+        if (primaryKeyField == null) {
             throw ExceptionUtils.gpe(new IllegalArgumentException(String.format("{%s} VertexId必须声明字段", clazz.getName())));
         }
         return vertexPropertyDefinitionMap;

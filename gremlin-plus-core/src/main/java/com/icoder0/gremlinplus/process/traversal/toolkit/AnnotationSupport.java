@@ -43,7 +43,7 @@ public class AnnotationSupport {
         if (graphLabel != null) {
             return graphLabel.value();
         }
-        throw ExceptionUtils.gpe(new IllegalArgumentException("Vertex/Edge实体类必须声明标签注解GraphLabel/VertexLabel/EdgeLabel"));
+        return null;
     }
 
     public static String resolveVertexLabel(Class<?> clazz) {
@@ -56,7 +56,7 @@ public class AnnotationSupport {
         if (graphLabel != null) {
             return graphLabel.value();
         }
-        throw ExceptionUtils.gpe(new IllegalArgumentException("Vertex实体类必须声明标签注解GraphLabel或VertexLabel"));
+        return null;
     }
 
     public static String resolveEdgeLabel(Class<?> clazz) {
@@ -69,6 +69,6 @@ public class AnnotationSupport {
         if (graphLabel != null) {
             return graphLabel.value();
         }
-        throw ExceptionUtils.gpe(new IllegalArgumentException("Vertex实体类必须声明标签注解GraphLabel或EdgeLabel"));
+        return null;
     }
 }

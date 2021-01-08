@@ -1,5 +1,7 @@
 package com.icoder0.gremlinplus.process.traversal.function;
 
+import com.icoder0.gremlinplus.process.traversal.toolkit.ExceptionUtils;
+
 import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNull;
@@ -18,7 +20,7 @@ public interface ThrowingSupplier<T,E extends Exception> {
             try {
                 return supplier.get();
             } catch (final Exception e) {
-                throw new CheckedException(e);
+                throw ExceptionUtils.gpe(e);
             }
         };
     }

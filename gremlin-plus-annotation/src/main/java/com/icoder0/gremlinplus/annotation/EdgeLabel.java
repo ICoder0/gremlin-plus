@@ -4,19 +4,11 @@ import java.lang.annotation.*;
 
 /**
  * @author bofa1ex
- * @since 2020/12/4
+ * @since 2020/12/14
  */
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-public @interface GraphLabel {
-
+public @interface EdgeLabel {
     String value() default "";
-
-    /**
-     * 用于区分vertex和edge
-     * @see EdgeLabel
-     * @see VertexLabel
-     */
-    boolean vertex() default true;
 }

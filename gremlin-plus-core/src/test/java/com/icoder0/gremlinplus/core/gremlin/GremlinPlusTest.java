@@ -4,7 +4,8 @@ import com.icoder0.gremlinplus.annotation.GraphLabel;
 import com.icoder0.gremlinplus.annotation.VertexId;
 import com.icoder0.gremlinplus.annotation.VertexProperty;
 import com.icoder0.gremlinplus.process.traversal.dsl.GraphPlusTraversalSource;
-import com.icoder0.gremlinplus.process.traversal.function.SerializedFunction;
+import com.icoder0.gremlinplus.process.traversal.toolkit.SerializedFunctionSupport;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
@@ -24,7 +25,7 @@ public class GremlinPlusTest {
     public void addVManually() {
         final TinkerGraph graph = TinkerGraph.open();
         try (GraphPlusTraversalSource traversal = graph.traversal(GraphPlusTraversalSource.class)) {
-             final User user = traversal.addV(User.class)
+            final User user = traversal.addV(User.class)
                     .property(User::getName, "bofa1ex")
                     .property(User::getAge, 21)
                     .property(User::getParkThread, Thread.currentThread())
@@ -42,7 +43,7 @@ public class GremlinPlusTest {
         try (GraphPlusTraversalSource traversal = graph.traversal(GraphPlusTraversalSource.class)) {
             final Vertex vertex = traversal.addV(user);
             System.out.println(user);
-            vertex.values(SerializedFunction.method2Properties(User::getName)).forEachRemaining(System.out::println);
+            vertex.values(SerializedFunctionSupport.method2Properties(User::getName)).forEachRemaining(System.out::println);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -53,14 +54,14 @@ public class GremlinPlusTest {
         final TinkerGraph graph = TinkerGraph.open();
         final User u1 = new User("bofa1ex", 21);
         final User u2 = new User("yl", 22);
-        try (GraphPlusTraversalSource traversal = graph.traversal(GraphPlusTraversalSource.class).supportSerializable()) {
+        try (GraphPlusTraversalSource traversal = graph.traversal(GraphPlusTraversalSource.class)) {
             final Optional<Edge> edgeOpt = traversal.addE(DefaultEdge.class)
                     .from(traversal.addV(u1))
                     .to(traversal.addV(u2))
                     .tryNext();
-            edgeOpt.map(Edge::inVertex).map(vertex -> vertex.values(SerializedFunction.method2Properties(User::getName, User::getAge)))
+            edgeOpt.map(Edge::inVertex).map(vertex -> vertex.values(SerializedFunctionSupport.method2Properties(User::getName, User::getAge)))
                     .ifPresent(data -> data.forEachRemaining(System.out::println));
-            edgeOpt.map(Edge::outVertex).map(vertex -> vertex.values(SerializedFunction.method2Properties(User::getName, User::getAge)))
+            edgeOpt.map(Edge::outVertex).map(vertex -> vertex.values(SerializedFunctionSupport.method2Properties(User::getName, User::getAge)))
                     .ifPresent(data -> data.forEachRemaining(System.out::println));
         } catch (Exception e) {
             e.printStackTrace();
@@ -72,21 +73,50 @@ public class GremlinPlusTest {
         final TinkerGraph graph = TinkerGraph.open();
         try (GraphPlusTraversalSource traversal = graph.traversal(GraphPlusTraversalSource.class)) {
             traversal.addE(DefaultEdge.class)
-                    .from(traversal.addV(new User("bofa1ex", 21)))
+                    .from(traversal.addV(new User("bofa1ex", 21, Thread.currentThread())))
                     .to(traversal.addV(new User2("yl")))
                     .next();
             System.out.println("====================================");
-
-            final User2 user = traversal.V().hasLabel(User.class)
-                    .has(User::getName, "bofa1ex")
-                    .out(DefaultEdge.class)
-                    .hasLabel(User2.class)
-                    .has(User2::getName, "yl")
+            traversal.V().hasLabel(User.class)
+                    .has(User::getName, "admin")
                     .toBean();
-            System.out.println(user);
-        } catch (Exception ignored) {
+//
+//            final User user = traversal.V().hasLabel(User.class)
+//                    .has(User::getName, "bofa1ex")
+//                    .toBean();
+//
+//            final Thread parkThread = traversal.V().hasLabel(User.class)
+//                    .has(User::getName, "bofa1ex")
+//                    .value(User::getParkThread)
+//                    .tryNext().orElse(null);
+//
+//            final User2 user2 = traversal.V().hasLabel(User.class)
+//                    .has(User::getName, "bofa1ex")
+//                    .out(DefaultEdge.class)
+//                    .hasLabel(User2.class)
+//                    .has(User2::getName, "yl")
+//                    .toBean();
+//            System.out.println(user);
+//            System.out.println(parkThread);
+//            System.out.println(user2);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
+
+    @Test
+    public void newTest() {
+        final TinkerGraph graph = TinkerGraph.open();
+        try (GraphPlusTraversalSource g = graph.traversal(GraphPlusTraversalSource.class)) {
+            final List<Pair<User, Vertex>> pairs = g.addV(User.class).property(User::getParkThread, Thread.currentThread())
+                    .property(User::getAge, 23)
+                    .toPairList();
+            System.out.println(pairs);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
 
     @GraphLabel("<DEFAULT>")
     public static class DefaultEdge {
@@ -94,7 +124,7 @@ public class GremlinPlusTest {
     }
 
     @GraphLabel("<USER2>")
-    public static class User2{
+    public static class User2 {
         @VertexId
         private Object id;
         @VertexProperty("[NAME]")
@@ -146,11 +176,15 @@ public class GremlinPlusTest {
         public User() {
         }
 
-        // add, drop, 优先操作内存缓存. 这些操作存在队列里面, 去做持久化.
-        // http api
         public User(String name, Integer age) {
             this.name = name;
             this.age = age;
+        }
+
+        public User(String name, Integer age, Thread parkThread) {
+            this.name = name;
+            this.age = age;
+            this.parkThread = parkThread;
         }
 
         public Object getId() {
@@ -179,6 +213,10 @@ public class GremlinPlusTest {
 
         public Thread getParkThread() {
             return parkThread;
+        }
+
+        public void setParkThread(Thread parkThread) {
+            this.parkThread = parkThread;
         }
 
         @Override

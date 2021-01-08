@@ -4,6 +4,7 @@ import com.icoder0.gremlinplus.process.traversal.definition.VertexDefinition;
 import com.icoder0.gremlinplus.process.traversal.definition.VertexPropertyDefinition;
 import com.icoder0.gremlinplus.process.traversal.toolkit.AnnotationSupport;
 import com.icoder0.gremlinplus.process.traversal.toolkit.KeyGeneratorSupport;
+import com.icoder0.gremlinplus.process.traversal.toolkit.UnSerializedPropertySupport;
 import net.sf.cglib.beans.BeanMap;
 import org.apache.tinkerpop.gremlin.process.remote.RemoteConnection;
 import org.apache.tinkerpop.gremlin.process.remote.traversal.strategy.decoration.RemoteStrategy;
@@ -56,7 +57,7 @@ public class GraphPlusTraversalSource implements TraversalSource {
     // ************************************************************************
     public <T> Vertex addV(T entity) {
         final Class<?> vertexClazz = entity.getClass();
-        final VertexDefinition vertexDefinition = VERTEX_DEFINITION_MAP.computeIfAbsent(vertexClazz, ignored -> VertexDefinition.builder()
+        final VertexDefinition vertexDefinition = getVertexDefinitionCache().putIfAbsent(vertexClazz, () -> VertexDefinition.builder()
                 .withLabel(AnnotationSupport.resolveVertexLabel(vertexClazz))
                 .withVertexPropertyDefinitionMap(resolveProperties(vertexClazz))
                 .withBeanMap(BeanMap.create(entity))
@@ -85,7 +86,7 @@ public class GraphPlusTraversalSource implements TraversalSource {
                 Optional.ofNullable(beanMap.get(entity, key)).ifPresent(value -> {
                     final Object genKey = KeyGeneratorSupport.generate();
                     vertex.property(propertyName, genKey);
-                    VERTEX_UNSERIALIZED_MAP.put(genKey, value);
+                    UnSerializedPropertySupport.getUnSerializedPropertyCache().put(genKey, value);
                 });
                 continue;
             }
@@ -102,7 +103,7 @@ public class GraphPlusTraversalSource implements TraversalSource {
         final GraphPlusTraversalSource clone = this.clone();
         final BeanMap.Generator generator = new BeanMap.Generator();
         generator.setBeanClass(clazz);
-        final VertexDefinition vertexDefinition = VERTEX_DEFINITION_MAP.computeIfAbsent(clazz, ignored -> VertexDefinition.builder()
+        final VertexDefinition vertexDefinition = getVertexDefinitionCache().putIfAbsent(clazz, () -> VertexDefinition.builder()
                 .withLabel(AnnotationSupport.resolveVertexLabel(clazz))
                 .withVertexPropertyDefinitionMap(resolveProperties(clazz))
                 .withBeanMap(generator.create())
@@ -139,22 +140,36 @@ public class GraphPlusTraversalSource implements TraversalSource {
      * Spawns a {@link GraphTraversal} starting with all vertices or some subset of vertices as specified by their
      * unique identifier.
      */
-    public <T> GraphPlusTerminalTraversal<Vertex, Vertex, T> V(final Object... vertexIds) {
+    public <T> GraphPlusQueryTraversal<Vertex, Vertex, T> V(final Object... vertexIds) {
         final GraphPlusTraversalSource clone = this.clone();
         clone.bytecode.addStep(GraphTraversal.Symbols.V, vertexIds);
-        final GraphPlusTerminalTraversal<Vertex, Vertex, T> traversal = new GraphPlusTerminalTraversal<>(clone);
-        return (GraphPlusTerminalTraversal<Vertex, Vertex, T>) traversal.addStep(new GraphStep<>(traversal, Vertex.class, true, vertexIds));
+        final GraphPlusQueryTraversal<Vertex, Vertex, T> traversal = new GraphPlusQueryTraversal<>(clone);
+        return (GraphPlusQueryTraversal<Vertex, Vertex, T>) traversal.addStep(new GraphStep<>(traversal, Vertex.class, true, vertexIds));
+    }
+
+    public <T> GraphPlusQueryTraversal<Vertex, Vertex, T> V(final Class<T> labelEntityClazz, final Object... vertexIds) {
+        final GraphPlusTraversalSource clone = this.clone();
+        clone.bytecode.addStep(GraphTraversal.Symbols.V, vertexIds);
+        final GraphPlusQueryTraversal<Vertex, Vertex, T> traversal = new GraphPlusQueryTraversal<>(clone, labelEntityClazz);
+        return (GraphPlusQueryTraversal<Vertex, Vertex, T>) traversal.addStep(new GraphStep<>(traversal, Vertex.class, true, vertexIds));
     }
 
     /**
      * Spawns a {@link GraphTraversal} starting with all edges or some subset of edges as specified by their unique
      * identifier.
      */
-    public <T> GraphPlusTerminalTraversal<Edge, Edge, T> E(final Object... edgesIds) {
+    public <T> GraphPlusQueryTraversal<Edge, Edge, T> E(final Object... edgesIds) {
         final GraphPlusTraversalSource clone = this.clone();
         clone.bytecode.addStep(GraphTraversal.Symbols.E, edgesIds);
-        final GraphPlusTerminalTraversal<Edge, Edge, T> traversal = new GraphPlusTerminalTraversal<>(clone);
-        return (GraphPlusTerminalTraversal<Edge, Edge, T>) traversal.addStep(new GraphStep<>(traversal, Edge.class, true, edgesIds));
+        final GraphPlusQueryTraversal<Edge, Edge, T> traversal = new GraphPlusQueryTraversal<>(clone);
+        return (GraphPlusQueryTraversal<Edge, Edge, T>) traversal.addStep(new GraphStep<>(traversal, Edge.class, true, edgesIds));
+    }
+
+    public <T> GraphPlusQueryTraversal<Edge, Edge, T> E(final Class<T> labelEntityClazz, final Object... edgesIds) {
+        final GraphPlusTraversalSource clone = this.clone();
+        clone.bytecode.addStep(GraphTraversal.Symbols.E, edgesIds);
+        final GraphPlusQueryTraversal<Edge, Edge, T> traversal = new GraphPlusQueryTraversal<>(clone, labelEntityClazz);
+        return (GraphPlusQueryTraversal<Edge, Edge, T>) traversal.addStep(new GraphStep<>(traversal, Edge.class, true, edgesIds));
     }
 
     /**

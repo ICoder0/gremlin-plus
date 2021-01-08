@@ -15,11 +15,7 @@ import java.util.function.Function;
 @FunctionalInterface
 public interface SerializedFunction<T, R> extends Function<T, R>, Serializable {
 
-    static <T, R> Pair<String, Object> unwrapKeyPair(SerializedFunction<T, R> func) {
-        return SerializedFunctionSupport.method2PropertyKeyPair(LambdaSupport.resolve(func));
-    }
-
-    static <T, R> Pair<String, Boolean> unwrapBoolPair(SerializedFunction<T, R> func) {
+    static <T, R> Pair<String, Boolean> unwrapPair(SerializedFunction<T, R> func) {
         return SerializedFunctionSupport.method2PropertyBoolPair(LambdaSupport.resolve(func));
     }
 }

@@ -1,6 +1,5 @@
-package com.icoder0.gremlinplus.process.traversal.step.util;
+package com.icoder0.gremlinplus.process.traversal.step;
 
-import com.icoder0.gremlinplus.process.traversal.toolkit.VertexDefinitionSupport;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
 import org.apache.tinkerpop.gremlin.process.traversal.Traverser;
@@ -13,6 +12,8 @@ import org.apache.tinkerpop.gremlin.structure.PropertyType;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
 import java.util.*;
+
+import static com.icoder0.gremlinplus.process.traversal.toolkit.UnSerializedPropertySupport.getUnSerializedPropertyCache;
 
 /**
  * @author bofa1ex
@@ -55,7 +56,7 @@ public class PropertiesPlusStep extends FlatMapStep<Element, Object> implements 
         if (this.returnType.equals(PropertyType.VALUE)) {
             return propertiesMap.entrySet().parallelStream().map(entry -> {
                 final Object value = element.value(entry.getKey());
-                return entry.getValue() ? value : VertexDefinitionSupport.VERTEX_UNSERIALIZED_MAP.getOrDefault(value, null);
+                return entry.getValue() ? value : getUnSerializedPropertyCache().get(value);
             }).iterator();
         }
         return (Iterator) element.properties(propertyKeys);

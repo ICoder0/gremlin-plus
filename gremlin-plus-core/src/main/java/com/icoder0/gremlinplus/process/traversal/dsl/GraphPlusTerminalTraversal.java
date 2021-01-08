@@ -65,7 +65,7 @@ public class GraphPlusTerminalTraversal<S, E, L> extends GraphPlusNormalTraversa
 
     public Pair<L, Vertex> toPair() {
         if (Objects.isNull(labelEntityClass)) {
-            throw ExceptionUtils.gpe("必须有声明labelEntity的step");
+            throw ExceptionUtils.gpe("必须指定单个label");
         }
         final Vertex vertex = ((GraphPlusNormalTraversal<S, Vertex, L>) this.asAdmin()).tryNext().orElseThrow(() -> ExceptionUtils.gpe(String.format("找不到对应{%s}#vertex记录", labelEntityClass.getName())));
         final L o = (L) CglibSupport.newInstance(labelEntityClass);
@@ -98,7 +98,7 @@ public class GraphPlusTerminalTraversal<S, E, L> extends GraphPlusNormalTraversa
 
     public L toBean() {
         if (Objects.isNull(labelEntityClass)) {
-            throw ExceptionUtils.gpe("必须有声明labelEntity的step");
+            throw ExceptionUtils.gpe("必须指定单个label");
         }
 
         final Vertex vertex = ((GraphPlusNormalTraversal<S, Vertex, L>) this.asAdmin()).tryNext().orElseThrow(() -> ExceptionUtils.gpe(String.format("找不到对应{%s}#vertex记录", labelEntityClass.getName())));
@@ -133,7 +133,7 @@ public class GraphPlusTerminalTraversal<S, E, L> extends GraphPlusNormalTraversa
 
     public List<Pair<L, Vertex>> toPairList() {
         if (Objects.isNull(labelEntityClass)) {
-            throw ExceptionUtils.gpe("必须有声明labelEntity的step");
+            throw ExceptionUtils.gpe("必须指定单个label");
         }
         final BeanMap.Generator generator = new BeanMap.Generator();
         generator.setBeanClass(labelEntityClass);
@@ -171,7 +171,7 @@ public class GraphPlusTerminalTraversal<S, E, L> extends GraphPlusNormalTraversa
 
     public List<L> toBeanList() {
         if (Objects.isNull(labelEntityClass)) {
-            throw ExceptionUtils.gpe("必须有声明labelEntity的step");
+            throw ExceptionUtils.gpe("必须指定单个label");
         }
         final BeanMap.Generator generator = new BeanMap.Generator();
         generator.setBeanClass(labelEntityClass);
@@ -208,7 +208,7 @@ public class GraphPlusTerminalTraversal<S, E, L> extends GraphPlusNormalTraversa
 
     public Set<Pair<L, Vertex>> toPairSet() {
         if (Objects.isNull(labelEntityClass)) {
-            throw ExceptionUtils.gpe("必须有声明labelEntity的step");
+            throw ExceptionUtils.gpe("必须指定单个label");
         }
         final BeanMap.Generator generator = new BeanMap.Generator();
         generator.setBeanClass(labelEntityClass);
@@ -245,7 +245,7 @@ public class GraphPlusTerminalTraversal<S, E, L> extends GraphPlusNormalTraversa
 
     public Set<L> toBeanSet() {
         if (Objects.isNull(labelEntityClass)) {
-            throw ExceptionUtils.gpe("必须有声明labelEntity的step");
+            throw ExceptionUtils.gpe("必须指定单个label");
         }
         final BeanMap.Generator generator = new BeanMap.Generator();
         generator.setBeanClass(labelEntityClass);

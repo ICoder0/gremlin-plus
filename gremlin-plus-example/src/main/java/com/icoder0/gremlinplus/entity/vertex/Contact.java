@@ -1,5 +1,6 @@
 package com.icoder0.gremlinplus.entity.vertex;
 
+import com.icoder0.gremlinplus.Application;
 import com.icoder0.gremlinplus.annotation.GraphLabel;
 import com.icoder0.gremlinplus.annotation.VertexId;
 import com.icoder0.gremlinplus.annotation.VertexProperty;
@@ -48,5 +49,5 @@ public class Contact {
     @VertexProperty(value = "[PARK_THREAD]", serializable = false)
     private Thread parkThread;
     @VertexProperty(value = "[PROTOTYPE]", serializable = false)
-    private Object prototype;
+    private Application.Bot prototype;
 }

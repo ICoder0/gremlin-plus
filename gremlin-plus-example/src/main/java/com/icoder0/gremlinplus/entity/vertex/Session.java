@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @GraphLabel("<SESSION>")
-public class Session {
+public class Session extends Evict {
     @VertexId
     private Object id;
     @VertexProperty(value = "[PROTOTYPE]", serializable = false)

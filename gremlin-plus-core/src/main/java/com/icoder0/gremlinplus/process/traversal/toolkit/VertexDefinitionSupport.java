@@ -1,12 +1,13 @@
 package com.icoder0.gremlinplus.process.traversal.toolkit;
 
-import com.icoder0.gremlinplus.process.traversal.definition.VertexDefinition;
+import com.icoder0.gremlinplus.process.extension.*;
 import com.icoder0.gremlinplus.process.traversal.definition.VertexPropertyDefinition;
+import org.apache.commons.lang3.ClassUtils;
 
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Optional;
 
 /**
  * @author bofa1ex
@@ -14,9 +15,29 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class VertexDefinitionSupport {
 
-    public static final Map<Class<?>, VertexDefinition> VERTEX_DEFINITION_MAP = new ConcurrentHashMap<>();
+    private static Class<? extends VertexDefinitionCache> vertexDefinitionCachePlugin;
 
-    public static final Map<Object, Object> VERTEX_UNSERIALIZED_MAP = new ConcurrentHashMap<>();
+    public static VertexDefinitionCache getVertexDefinitionCache() {
+        return VertexDefinitionCacheHolder.vertexDefinitionCache;
+    }
+
+    public static void init(Class<? extends VertexDefinitionCache> plugin) {
+        vertexDefinitionCachePlugin = plugin;
+    }
+
+    public static <T extends VertexDefinitionCache> void init(T t) {
+        VertexDefinitionCacheHolder.vertexDefinitionCache = t;
+    }
+
+    public static class VertexDefinitionCacheHolder {
+        private static VertexDefinitionCache vertexDefinitionCache;
+
+        static {
+            vertexDefinitionCache = Optional.ofNullable(vertexDefinitionCachePlugin).map(CglibSupport::newInstance)
+                    .map(o -> ((VertexDefinitionCache) o))
+                    .orElseGet(DefaultVertexDefinitionCache::getInstance);
+        }
+    }
 
     public static Map<String, VertexPropertyDefinition> resolveProperties(Class<?> clazz) {
         final Field[] fields = clazz.getDeclaredFields();
@@ -38,8 +59,12 @@ public class VertexDefinitionSupport {
                     .build()
             );
         }
-        if (primaryKeyField == null) {
-            throw ExceptionUtils.gpe(new IllegalArgumentException(String.format("{%s} VertexId必须声明字段", clazz.getName())));
+        final Class<?> superclass = clazz.getSuperclass();
+        if (superclass != null) {
+            if (superclass.getSimpleName().equalsIgnoreCase(Object.class.getSimpleName()) || ClassUtils.isPrimitiveOrWrapper(superclass)) {
+                return vertexPropertyDefinitionMap;
+            }
+            vertexPropertyDefinitionMap.putAll(resolveProperties(superclass));
         }
         return vertexPropertyDefinitionMap;
     }

@@ -147,13 +147,6 @@ public class GraphPlusTraversalSource implements TraversalSource {
         return (GraphPlusQueryTraversal<Vertex, Vertex, T>) traversal.addStep(new GraphStep<>(traversal, Vertex.class, true, vertexIds));
     }
 
-    public <T> GraphPlusQueryTraversal<Vertex, Vertex, T> V(final Class<T> labelEntityClazz, final Object... vertexIds) {
-        final GraphPlusTraversalSource clone = this.clone();
-        clone.bytecode.addStep(GraphTraversal.Symbols.V, vertexIds);
-        final GraphPlusQueryTraversal<Vertex, Vertex, T> traversal = new GraphPlusQueryTraversal<>(clone, labelEntityClazz);
-        return (GraphPlusQueryTraversal<Vertex, Vertex, T>) traversal.addStep(new GraphStep<>(traversal, Vertex.class, true, vertexIds));
-    }
-
     /**
      * Spawns a {@link GraphTraversal} starting with all edges or some subset of edges as specified by their unique
      * identifier.
@@ -162,13 +155,6 @@ public class GraphPlusTraversalSource implements TraversalSource {
         final GraphPlusTraversalSource clone = this.clone();
         clone.bytecode.addStep(GraphTraversal.Symbols.E, edgesIds);
         final GraphPlusQueryTraversal<Edge, Edge, T> traversal = new GraphPlusQueryTraversal<>(clone);
-        return (GraphPlusQueryTraversal<Edge, Edge, T>) traversal.addStep(new GraphStep<>(traversal, Edge.class, true, edgesIds));
-    }
-
-    public <T> GraphPlusQueryTraversal<Edge, Edge, T> E(final Class<T> labelEntityClazz, final Object... edgesIds) {
-        final GraphPlusTraversalSource clone = this.clone();
-        clone.bytecode.addStep(GraphTraversal.Symbols.E, edgesIds);
-        final GraphPlusQueryTraversal<Edge, Edge, T> traversal = new GraphPlusQueryTraversal<>(clone, labelEntityClazz);
         return (GraphPlusQueryTraversal<Edge, Edge, T>) traversal.addStep(new GraphStep<>(traversal, Edge.class, true, edgesIds));
     }
 

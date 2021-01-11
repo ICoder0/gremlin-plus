@@ -79,7 +79,7 @@ public class GraphPlusNormalTraversal<S, E, L> extends DefaultTraversal<S, E> im
         // 根据vertex#id获取对应的generateKey
         return (GraphPlusTerminalTraversal<S, E, L>) Optional.ofNullable(SerializedFunction.unwrapPair(func)).map(pair -> {
             // 如果该字段不支持序列化.
-            if (pair.getValue()) {
+            if (!pair.getValue()) {
                 final Object generateKey = ((GraphPlusNormalTraversal<S, Vertex, L>) this.clone()).tryNext()
                         .map(vertex -> vertex.property(SerializedFunctionSupport.method2Property(LambdaSupport.resolve(func))).orElse(null))
                         .orElse(KeyGeneratorSupport.generate());

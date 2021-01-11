@@ -20,6 +20,10 @@ public class DefaultUnSerializedPropertyCache implements UnSerializedPropertyCac
     @Override
     public void put(Object key, Object val) {
         requireNonNull(key);
+        if (unSerializedPropertyCache.containsKey(key) && val == null){
+            unSerializedPropertyCache.remove(key);
+            return;
+        }
         unSerializedPropertyCache.put(key, val);
     }
 

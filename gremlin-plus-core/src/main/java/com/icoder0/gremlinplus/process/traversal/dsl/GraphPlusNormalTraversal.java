@@ -75,7 +75,7 @@ public class GraphPlusNormalTraversal<S, E, L> extends DefaultTraversal<S, E> im
     }
 
     public <R> GraphPlusTerminalTraversal<S, E, L> property(final SerializedFunction<L, R> func, final Traversal<S, E> vertexTraversal) {
-        final E value = vertexTraversal.next();
+        final E value = Optional.ofNullable(vertexTraversal).map(Traversal::next).orElse(null);
         // 根据vertex#id获取对应的generateKey
         return (GraphPlusTerminalTraversal<S, E, L>) Optional.ofNullable(SerializedFunction.unwrapPair(func)).map(pair -> {
             // 如果该字段不支持序列化.
@@ -84,9 +84,9 @@ public class GraphPlusNormalTraversal<S, E, L> extends DefaultTraversal<S, E> im
                         .map(vertex -> vertex.property(SerializedFunctionSupport.method2Property(LambdaSupport.resolve(func))).orElse(null))
                         .orElse(KeyGeneratorSupport.generate());
                 getUnSerializedPropertyCache().put(generateKey, value);
-                return this.property(null, pair.getKey(), generateKey, null);
+                return this.property(null, pair.getKey(), generateKey, new Object[]{});
             }
-            return this.property(null, pair.getKey(), value, null);
+            return this.property(null, pair.getKey(), value, new Object[]{});
         }).orElse(this);
     }
 

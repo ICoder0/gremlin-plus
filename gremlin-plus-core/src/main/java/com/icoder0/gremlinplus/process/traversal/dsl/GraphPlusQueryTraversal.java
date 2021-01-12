@@ -14,6 +14,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.TraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.AddVertexStartStep;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
 import java.util.Map;
 import java.util.Optional;
@@ -73,6 +74,8 @@ public class GraphPlusQueryTraversal<S, E, L> extends GraphPlusTerminalTraversal
 
             Optional.ofNullable(beanMap.get(l, key)).ifPresent(value -> vertex.property(propertyName, value));
         }
+        // 切记释放资源.
+        CloseableIterator.closeIterator(this);
         return Pair.of(l, vertex);
     }
 

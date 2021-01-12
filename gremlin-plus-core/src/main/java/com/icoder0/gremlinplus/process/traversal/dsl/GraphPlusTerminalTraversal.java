@@ -8,6 +8,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -122,6 +123,8 @@ public class GraphPlusTerminalTraversal<S, E, L> extends GraphPlusNormalTraversa
                     .map(value -> vertexPropertyDefinition.isSerializable() ? value : getUnSerializedPropertyCache().get(value))
                     .ifPresent(value -> beanMap.put(o, entry.getKey(), value));
         }
+        // 切记释放资源.
+        CloseableIterator.closeIterator(this);
         return o;
     }
 
@@ -159,6 +162,8 @@ public class GraphPlusTerminalTraversal<S, E, L> extends GraphPlusNormalTraversa
             }
             pairs.add(Pair.of(o, vertex));
         }
+        // 切记释放资源.
+        CloseableIterator.closeIterator(this);
         return pairs;
     }
 
@@ -197,6 +202,8 @@ public class GraphPlusTerminalTraversal<S, E, L> extends GraphPlusNormalTraversa
             }
             beans.add(o);
         }
+        // 切记释放资源.
+        CloseableIterator.closeIterator(this);
         return beans;
     }
 
@@ -234,6 +241,8 @@ public class GraphPlusTerminalTraversal<S, E, L> extends GraphPlusNormalTraversa
             }
             pairs.add(Pair.of(o, vertex));
         }
+        // 切记释放资源.
+        CloseableIterator.closeIterator(this);
         return pairs;
     }
 
@@ -271,6 +280,8 @@ public class GraphPlusTerminalTraversal<S, E, L> extends GraphPlusNormalTraversa
             }
             beans.add(o);
         }
+        // 切记释放资源.
+        CloseableIterator.closeIterator(this);
         return beans;
     }
 

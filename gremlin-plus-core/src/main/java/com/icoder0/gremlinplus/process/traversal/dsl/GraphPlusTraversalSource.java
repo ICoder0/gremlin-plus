@@ -19,6 +19,7 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.apache.tinkerpop.gremlin.structure.util.empty.EmptyGraph;
 
@@ -66,9 +67,8 @@ public class GraphPlusTraversalSource implements TraversalSource {
         final String label = vertexDefinition.getLabel();
         final BeanMap beanMap = vertexDefinition.getBeanMap();
         final Map<String, VertexPropertyDefinition> vertexPropertyDefinitionMap = vertexDefinition.getVertexPropertyDefinitionMap();
-        final GraphPlusTraversalSource clone = this.clone();
-        clone.bytecode.addStep(GraphTraversal.Symbols.addV, label);
-        final GraphPlusNormalTraversal<Vertex, Vertex, T> first = new GraphPlusNormalTraversal<>(clone, (Class<T>) entity.getClass());
+        this.bytecode.addStep(GraphTraversal.Symbols.addV, label);
+        final GraphPlusNormalTraversal<Vertex, Vertex, T> first = new GraphPlusNormalTraversal<>(this, (Class<T>) entity.getClass());
 
         final Vertex vertex = first.addStep(new AddVertexStartStep(first, label)).next();
 
@@ -93,6 +93,8 @@ public class GraphPlusTraversalSource implements TraversalSource {
 
             Optional.ofNullable(beanMap.get(entity, key)).ifPresent(value -> vertex.property(propertyName, value));
         }
+        // 切记释放资源.
+        CloseableIterator.closeIterator(first);
         return vertex;
     }
 

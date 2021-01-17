@@ -52,10 +52,11 @@ public class GraphPlusTerminalTraversal<S, E, L> extends GraphPlusNormalTraversa
     public Optional<L> tryToBean() {
         try {
             return Optional.ofNullable(toBean());
-        } catch (Exception e) {
+        } catch (ExceptionUtils.CheckedException ignored){
+        } catch(Exception e) {
             log.error("toBean#invoke异常", e);
-            return Optional.empty();
         }
+        return Optional.empty();
     }
 
 
@@ -89,6 +90,8 @@ public class GraphPlusTerminalTraversal<S, E, L> extends GraphPlusNormalTraversa
                     .map(value -> vertexPropertyDefinition.isSerializable() ? value : getUnSerializedPropertyCache().get(value))
                     .ifPresent(value -> beanMap.put(o, entry.getKey(), value));
         }
+        // 切记释放资源.
+        CloseableIterator.closeIterator(this);
         return Pair.of(o, vertex);
     }
 

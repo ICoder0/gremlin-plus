@@ -48,7 +48,9 @@ public class Solution {
             g.addV(User.builder().name("anonymous").build());
         }
         // but `gremlin-plus` supported `#getIfAbsent` api, u just need try it in the same situation in below.
-        Pair<User,Vertex> userVertexPair = g.V().hasLabel(User.class).has(User::getName, "anonymous").getIfAbsent(User.builder().name("anonymous").build());
+        Pair<User,Vertex> userVertexPair = g.V().hasLabel(User.class).has(User::getName, "anonymous").getIfAbsent(
+            User.builder().name("anonymous").build()
+        );
         // u might be confused by this return value, why use tuple with bean and vertex, talk is cheap, see the code in below.
         g.addE(Follow.class).from(g.V().hasLabel(User.class).has(User::getName, "bofa1ex")).to(
             // when u wanna add edge from the vertex to the other vertex which maybe not exists.

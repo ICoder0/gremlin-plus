@@ -13,7 +13,7 @@
 > - 简化Vertex/Edge对应实体类的Convert/Mapping逻辑.
 > - 提供Vertex/Edge对应非序列化字段的对象缓存机制, 减少客户端显式声明多个缓存管理的开发成本开销, 并提供KeyGenerator/UnSerializedPropertyCache扩展插件接口.
 
-参见相关的ogm(ferma、spring-data-xx)源码.
+参见相关的ogm(ferma、mybatis-plus、spring-data-xx)源码.
 
 个人倾向mybatis-plus的api, jpa方面声明式的api对于图数据库的遍历不够灵活. 
 

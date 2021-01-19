@@ -56,7 +56,7 @@ public class Solution {
             // when u wanna add edge from the vertex to the other vertex which maybe not exists.
             userVertexPair.getRight()
         ).tryNext();
-        
+        // i thought the update operation should follow the query operation in strictly, so that why i did not open the getIfPresent api.
     } catch (Exception ignored) {
     }
   }

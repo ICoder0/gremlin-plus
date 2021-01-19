@@ -19,9 +19,7 @@ public class Application {
     public static void main(String[] args) {
         final GraphFacade graphFacade = GraphFacade.INSTANCE;
         final Object sessionPrototype = new Object();
-        final Session session = Session.builder()
-                .prototype(sessionPrototype)
-                .build();
+        final Session session = Session.builder().build();
         final GraphPlusTraversalSource g = graphFacade.traversal();
 
         graphFacade.commit(_g -> {
@@ -143,13 +141,11 @@ public class Application {
                 .out(DefaultEdge.class)
                 .hasLabel(Contact.class)
                 .has(Contact::getName, "小明")
-                .toPairList()
-                .forEach(contactPair -> {
-                    final Contact contact = contactPair.getKey();
-                    g.<Contact>V(contactPair.getValue().id()).property(Contact::getPrototype, new Bot(
-                            contact.getAccount(), contact.getPwd()
-                    )).tryNext();
-                });
+                .toBeanList()
+                .forEach(contact -> g.<Contact>V(contact.getId())
+                        .property(Contact::getPrototype, new Bot(contact.getAccount(), contact.getPwd()))
+                        .tryNext()
+                );
         final List<Contact> contacts = g.V().hasLabel(User.class)
                 .has(User::getName, "admin")
                 .out(DefaultEdge.class)
@@ -164,9 +160,11 @@ public class Application {
                 .has(User::getName, "admin")
                 .out(DefaultEdge.class)
                 .hasLabel(Session.class)
-                .toPairList().forEach(sessionPair ->
-                g.<Session>V(sessionPair.getValue().id()).property(Session::getPrototype, sessionPrototype).tryNext()
-        );
+                .toBeanList()
+                .forEach(_session -> g.<Session>V(_session.getId())
+                        .property(Session::getPrototype, sessionPrototype)
+                        .tryNext()
+                );
         final List<Session> sessions = g.V().hasLabel(User.class)
                 .has(User::getName, "admin")
                 .out(DefaultEdge.class)

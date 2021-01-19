@@ -45,7 +45,7 @@ public class Solution {
         // maybe when u query the bean which is not exists, and u should try add it like that in below.
         final Optional<User> anonymousUserOpt = g.V().hasLabel(User.class).has(User::getName, "anonymous").tryToBean();
         if(!anonymousUserOpt.isPresent()){
-            g.addV(User.builder().name("bofa1ex").build());
+            g.addV(User.builder().name("anonymous").build());
         }
         // but `gremlin-plus` supported `#getIfAbsent` api, u just need try it in the same situation in below.
         Pair<User,Vertex> userVertexPair = g.V().hasLabel(User.class).has(User::getName, "anonymous").getIfAbsent(User.builder().name("anonymous").build());

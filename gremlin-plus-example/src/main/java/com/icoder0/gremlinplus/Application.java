@@ -3,7 +3,13 @@ package com.icoder0.gremlinplus;
 import com.icoder0.gremlinplus.entity.edge.DefaultEdge;
 import com.icoder0.gremlinplus.entity.edge.LockEdge;
 import com.icoder0.gremlinplus.entity.vertex.*;
+import com.icoder0.gremlinplus.process.extension.DefaultKeyGenerator;
+import com.icoder0.gremlinplus.process.extension.DefaultUnSerializedPropertyCache;
+import com.icoder0.gremlinplus.process.extension.DefaultVertexDefinitionCache;
 import com.icoder0.gremlinplus.process.traversal.dsl.GraphPlusTraversalSource;
+import com.icoder0.gremlinplus.process.traversal.toolkit.KeyGeneratorSupport;
+import com.icoder0.gremlinplus.process.traversal.toolkit.UnSerializedPropertySupport;
+import com.icoder0.gremlinplus.process.traversal.toolkit.VertexDefinitionSupport;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
@@ -18,6 +24,12 @@ import java.util.List;
 public class Application {
     public static void main(String[] args) {
         final GraphFacade graphFacade = GraphFacade.INSTANCE;
+//        KeyGeneratorSupport.init(DefaultKeyGenerator.getInstance());
+//        KeyGeneratorSupport.init(DefaultKeyGenerator.class);
+//        UnSerializedPropertySupport.init(DefaultUnSerializedPropertyCache.getInstance());
+//        UnSerializedPropertySupport.init(DefaultUnSerializedPropertyCache.class);
+//        VertexDefinitionSupport.init(DefaultVertexDefinitionCache.getInstance());
+//        VertexDefinitionSupport.init(DefaultVertexDefinitionCache.class);
         final Object sessionPrototype = new Object();
         final Session session = Session.builder().build();
         final GraphPlusTraversalSource g = graphFacade.traversal();

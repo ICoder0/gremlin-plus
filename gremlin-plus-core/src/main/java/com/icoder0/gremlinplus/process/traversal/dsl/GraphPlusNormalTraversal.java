@@ -1,9 +1,11 @@
 package com.icoder0.gremlinplus.process.traversal.dsl;
 
+import com.icoder0.gremlinplus.process.traversal.definition.VertexDefinition;
 import com.icoder0.gremlinplus.process.traversal.function.SerializedFunction;
 import com.icoder0.gremlinplus.process.traversal.step.HasPlusContainer;
 import com.icoder0.gremlinplus.process.traversal.step.PropertiesPlusStep;
 import com.icoder0.gremlinplus.process.traversal.toolkit.*;
+import net.sf.cglib.beans.BeanMap;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
@@ -14,18 +16,19 @@ import org.apache.tinkerpop.gremlin.process.traversal.step.FromToModulating;
 import org.apache.tinkerpop.gremlin.process.traversal.step.filter.NotStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.filter.RangeGlobalStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.filter.TraversalFilterStep;
-import org.apache.tinkerpop.gremlin.process.traversal.step.map.GraphStep;
-import org.apache.tinkerpop.gremlin.process.traversal.step.map.PropertiesStep;
-import org.apache.tinkerpop.gremlin.process.traversal.step.map.VertexStep;
+import org.apache.tinkerpop.gremlin.process.traversal.step.map.*;
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.HasContainer;
 import org.apache.tinkerpop.gremlin.process.traversal.util.DefaultTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.util.TraversalHelper;
 import org.apache.tinkerpop.gremlin.structure.*;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.icoder0.gremlinplus.process.traversal.toolkit.UnSerializedPropertySupport.getUnSerializedPropertyCache;
+import static com.icoder0.gremlinplus.process.traversal.toolkit.VertexDefinitionSupport.getVertexDefinitionCache;
+import static com.icoder0.gremlinplus.process.traversal.toolkit.VertexDefinitionSupport.resolveProperties;
 
 
 /**
@@ -61,10 +64,22 @@ public class GraphPlusNormalTraversal<S, E, L> extends DefaultTraversal<S, E> im
         return (GraphPlusNormalTraversal<S, E, L>) super.clone();
     }
 
+    /**
+     * tryNext操作并没有释放Traversal对象中的steps资源.
+     * orientdb#OResultSet需要及时释放, 否则会出现资源泄漏以及警告日志.
+     */
+    public Optional<E> tryNextWithIterate() {
+        try {
+            return this.hasNext() ? Optional.of(this.next()) : Optional.empty();
+        } finally {
+            CloseableIterator.closeIterator(this);
+        }
+    }
+
     public <R> GraphPlusTerminalTraversal<S, E, L> property(final SerializedFunction<L, R> func, final R value, final Object... keyValues) {
         return (GraphPlusTerminalTraversal<S, E, L>) Optional.ofNullable(SerializedFunction.unwrapPair(func)).map(pair -> {
             if (!pair.getValue()) {
-                final Object generateKey = ((GraphPlusNormalTraversal<S, Vertex, L>) this.clone()).asAdmin().tryNext()
+                final Object generateKey = ((GraphPlusNormalTraversal<S, Vertex, L>) this.clone()).tryNext()
                         .map(vertex -> vertex.property(SerializedFunctionSupport.method2Property(LambdaSupport.resolve(func))).orElse(null))
                         .orElse(KeyGeneratorSupport.generate());
                 getUnSerializedPropertyCache().put(generateKey, value);
@@ -76,9 +91,8 @@ public class GraphPlusNormalTraversal<S, E, L> extends DefaultTraversal<S, E> im
 
     public <R> GraphPlusTerminalTraversal<S, E, L> property(final SerializedFunction<L, R> func, final Traversal<S, E> vertexTraversal) {
         final E value = Optional.ofNullable(vertexTraversal).map(Traversal::next).orElse(null);
-        // 根据vertex#id获取对应的generateKey
+        CloseableIterator.closeIterator(vertexTraversal);
         return (GraphPlusTerminalTraversal<S, E, L>) Optional.ofNullable(SerializedFunction.unwrapPair(func)).map(pair -> {
-            // 如果该字段不支持序列化.
             if (!pair.getValue()) {
                 final Object generateKey = ((GraphPlusNormalTraversal<S, Vertex, L>) this.clone()).tryNext()
                         .map(vertex -> vertex.property(SerializedFunctionSupport.method2Property(LambdaSupport.resolve(func))).orElse(null))
@@ -114,7 +128,7 @@ public class GraphPlusNormalTraversal<S, E, L> extends DefaultTraversal<S, E> im
 
     public <L2> GraphPlusTerminalTraversal<S, E, L2> hasLabel(final Class<L2> clazz) {
         this.labelEntityClass = clazz;
-        final String label = Optional.ofNullable(AnnotationSupport.resolveVertexLabel(clazz)).orElseThrow(() -> new IllegalArgumentException(String.format("实体类:[%s]label不可为空", clazz.getName())));
+        final String label = Optional.ofNullable(AnnotationSupport.resolveLabel(clazz)).orElseThrow(() -> new IllegalArgumentException(String.format("实体类:[%s]label不可为空", clazz.getName())));
         this.asAdmin().getBytecode().addStep(GraphTraversal.Symbols.hasLabel, label);
         return (GraphPlusTerminalTraversal<S, E, L2>) TraversalHelper.addHasContainer(this.asAdmin(), new HasContainer(org.apache.tinkerpop.gremlin.structure.T.label.getAccessor(), P.eq(label)));
     }
@@ -250,5 +264,19 @@ public class GraphPlusNormalTraversal<S, E, L> extends DefaultTraversal<S, E> im
     public GraphPlusTerminalTraversal<S, E, L> skip(final long skip) {
         this.asAdmin().getBytecode().addStep(GraphTraversal.Symbols.skip, skip);
         return (GraphPlusTerminalTraversal<S, E, L>) this.asAdmin().addStep(new RangeGlobalStep<>(this.asAdmin(), skip, -1));
+    }
+
+    public GraphPlusTerminalTraversal<Vertex, Vertex, L> addV(final Class<L> clazz) {
+        final BeanMap.Generator generator = new BeanMap.Generator();
+        generator.setBeanClass(clazz);
+        final VertexDefinition vertexDefinition = getVertexDefinitionCache().putIfAbsent(clazz, () -> VertexDefinition.builder()
+                .withLabel(AnnotationSupport.resolveVertexLabel(clazz))
+                .withVertexPropertyDefinitionMap(resolveProperties(clazz))
+                .withBeanMap(generator.create())
+                .build()
+        );
+        final String label = vertexDefinition.getLabel();
+        this.asAdmin().getBytecode().addStep(GraphTraversal.Symbols.addV, label);
+        return (GraphPlusTerminalTraversal<Vertex, Vertex, L>) this.asAdmin().addStep(new AddVertexStep<>(this.asAdmin(), label));
     }
 }

@@ -48,11 +48,7 @@ public class P<V> extends org.apache.tinkerpop.gremlin.process.traversal.P<V> {
     }
 
     public static <V extends CharSequence> org.apache.tinkerpop.gremlin.process.traversal.P<V> regex(final V value){
-        if (StringUtils.isBlank(value)){
-            log.warn("正则表达式为空, P.regex => P.empty");
-            return empty();
-        }
-        return new P(TextPlus.regex, value);
+        return StringUtils.isBlank(value) ? empty() : new P(TextPlus.regex, value);
     }
 
     public static <V> org.apache.tinkerpop.gremlin.process.traversal.P<V> notnull(){

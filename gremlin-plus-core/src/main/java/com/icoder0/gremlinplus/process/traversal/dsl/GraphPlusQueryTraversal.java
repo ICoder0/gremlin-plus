@@ -37,10 +37,10 @@ public class GraphPlusQueryTraversal<S, E, L> extends GraphPlusTerminalTraversal
         super(traversalSource, labelEntityClass);
     }
     public Pair<L, Vertex> getIfAbsent(L l) {
-        if (this.asAdmin().hasNext()) {
+        final GraphPlusTerminalTraversal<S, E, L> clone = this.clone();
+        if (clone.asAdmin().hasNext()) {
             return toPair();
         }
-        this.locked = false;
         final Class<?> vertexClazz = l.getClass();
         final VertexDefinition vertexDefinition = getVertexDefinitionCache().putIfAbsent(vertexClazz, () -> VertexDefinition.builder()
                 .withLabel(AnnotationSupport.resolveVertexLabel(vertexClazz))
@@ -54,7 +54,7 @@ public class GraphPlusQueryTraversal<S, E, L> extends GraphPlusTerminalTraversal
 
         final Vertex vertex = this.addStep(new AddVertexStartStep(this, label)).next();
         for (Object key : beanMap.keySet()) {
-            final VertexPropertyDefinition vertexPropertyDefinition = vertexPropertyDefinitionMap.get((String) key);
+            final VertexPropertyDefinition vertexPropertyDefinition = vertexPropertyDefinitionMap.get(key);
             final String propertyName = vertexPropertyDefinition.getPropertyName();
             // 如果是主键id, 跳过property赋值.
             if (vertexPropertyDefinition.isPrimaryKey()) {

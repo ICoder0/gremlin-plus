@@ -8,7 +8,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,7 +68,7 @@ public class GraphPlusTerminalTraversal<S, E, L> extends GraphPlusNormalTraversa
         if (Objects.isNull(labelEntityClass)) {
             throw ExceptionUtils.gpe("必须指定单个label");
         }
-        final Vertex vertex = ((GraphPlusNormalTraversal<S, Vertex, L>) this.asAdmin()).tryNext().orElseThrow(() -> ExceptionUtils.gpe(String.format("找不到对应{%s}#vertex记录", labelEntityClass.getName())));
+        final Vertex vertex = ((GraphPlusNormalTraversal<S, Vertex, L>) this).tryNextWithIterate().orElseThrow(() -> ExceptionUtils.gpe(String.format("找不到对应{%s}#vertex记录", labelEntityClass.getName())));
         final L o = (L) CglibSupport.newInstance(labelEntityClass);
         final BeanMap.Generator generator = new BeanMap.Generator();
         generator.setBeanClass(labelEntityClass);
@@ -90,8 +89,6 @@ public class GraphPlusTerminalTraversal<S, E, L> extends GraphPlusNormalTraversa
                     .map(value -> vertexPropertyDefinition.isSerializable() ? value : getUnSerializedPropertyCache().get(value))
                     .ifPresent(value -> beanMap.put(o, entry.getKey(), value));
         }
-        // 切记释放资源.
-        CloseableIterator.closeIterator(this);
         return Pair.of(o, vertex);
     }
 
@@ -105,7 +102,7 @@ public class GraphPlusTerminalTraversal<S, E, L> extends GraphPlusNormalTraversa
             throw ExceptionUtils.gpe("必须指定单个label");
         }
 
-        final Vertex vertex = ((GraphPlusNormalTraversal<S, Vertex, L>) this.asAdmin()).tryNext().orElseThrow(() -> ExceptionUtils.gpe(String.format("找不到对应{%s}#vertex记录", labelEntityClass.getName())));
+        final Vertex vertex = ((GraphPlusNormalTraversal<S, Vertex, L>) this).tryNextWithIterate().orElseThrow(() -> ExceptionUtils.gpe(String.format("找不到对应{%s}#vertex记录", labelEntityClass.getName())));
         final L o = (L) CglibSupport.newInstance(labelEntityClass);
         final BeanMap.Generator generator = new BeanMap.Generator();
         generator.setBeanClass(labelEntityClass);
@@ -126,8 +123,6 @@ public class GraphPlusTerminalTraversal<S, E, L> extends GraphPlusNormalTraversa
                     .map(value -> vertexPropertyDefinition.isSerializable() ? value : getUnSerializedPropertyCache().get(value))
                     .ifPresent(value -> beanMap.put(o, entry.getKey(), value));
         }
-        // 切记释放资源.
-        CloseableIterator.closeIterator(this);
         return o;
     }
 
@@ -151,7 +146,7 @@ public class GraphPlusTerminalTraversal<S, E, L> extends GraphPlusNormalTraversa
         );
         final BeanMap beanMap = vertexDefinition.getBeanMap();
         final List<Pair<L, Vertex>> pairs = new ArrayList<>();
-        for (Vertex vertex : ((GraphPlusNormalTraversal<S, Vertex, L>) this.asAdmin()).toList()) {
+        for (Vertex vertex : ((GraphPlusNormalTraversal<S, Vertex, L>) this).toList()) {
             final L o = (L) CglibSupport.newInstance(labelEntityClass);
             for (Map.Entry<String, VertexPropertyDefinition> entry : vertexDefinition.getVertexPropertyDefinitionMap().entrySet()) {
                 final VertexPropertyDefinition vertexPropertyDefinition = entry.getValue();
@@ -165,8 +160,6 @@ public class GraphPlusTerminalTraversal<S, E, L> extends GraphPlusNormalTraversa
             }
             pairs.add(Pair.of(o, vertex));
         }
-        // 切记释放资源.
-        CloseableIterator.closeIterator(this);
         return pairs;
     }
 
@@ -191,7 +184,7 @@ public class GraphPlusTerminalTraversal<S, E, L> extends GraphPlusNormalTraversa
         );
         final BeanMap beanMap = vertexDefinition.getBeanMap();
         final List<L> beans = new ArrayList<>();
-        for (Vertex vertex : ((GraphPlusNormalTraversal<S, Vertex, L>) this.asAdmin()).toList()) {
+        for (Vertex vertex : ((GraphPlusNormalTraversal<S, Vertex, L>) this).toList()) {
             final L o = (L) CglibSupport.newInstance(labelEntityClass);
             for (Map.Entry<String, VertexPropertyDefinition> entry : vertexDefinition.getVertexPropertyDefinitionMap().entrySet()) {
                 final VertexPropertyDefinition vertexPropertyDefinition = entry.getValue();
@@ -205,8 +198,6 @@ public class GraphPlusTerminalTraversal<S, E, L> extends GraphPlusNormalTraversa
             }
             beans.add(o);
         }
-        // 切记释放资源.
-        CloseableIterator.closeIterator(this);
         return beans;
     }
 
@@ -230,7 +221,7 @@ public class GraphPlusTerminalTraversal<S, E, L> extends GraphPlusNormalTraversa
         );
         final BeanMap beanMap = vertexDefinition.getBeanMap();
         final Set<Pair<L, Vertex>> pairs = new HashSet<>();
-        for (Vertex vertex : ((GraphPlusNormalTraversal<S, Vertex, L>) this.asAdmin()).toList()) {
+        for (Vertex vertex : ((GraphPlusNormalTraversal<S, Vertex, L>) this).toList()) {
             final L o = (L) CglibSupport.newInstance(labelEntityClass);
             for (Map.Entry<String, VertexPropertyDefinition> entry : vertexDefinition.getVertexPropertyDefinitionMap().entrySet()) {
                 final VertexPropertyDefinition vertexPropertyDefinition = entry.getValue();
@@ -244,8 +235,6 @@ public class GraphPlusTerminalTraversal<S, E, L> extends GraphPlusNormalTraversa
             }
             pairs.add(Pair.of(o, vertex));
         }
-        // 切记释放资源.
-        CloseableIterator.closeIterator(this);
         return pairs;
     }
 
@@ -269,7 +258,7 @@ public class GraphPlusTerminalTraversal<S, E, L> extends GraphPlusNormalTraversa
         );
         final BeanMap beanMap = vertexDefinition.getBeanMap();
         final Set<L> beans = new HashSet<>();
-        for (Vertex vertex : ((GraphPlusNormalTraversal<S, Vertex, L>) this.asAdmin()).toSet()) {
+        for (Vertex vertex : ((GraphPlusNormalTraversal<S, Vertex, L>) this).toSet()) {
             final L o = (L) CglibSupport.newInstance(labelEntityClass);
             for (Map.Entry<String, VertexPropertyDefinition> entry : vertexDefinition.getVertexPropertyDefinitionMap().entrySet()) {
                 final VertexPropertyDefinition vertexPropertyDefinition = entry.getValue();
@@ -283,8 +272,6 @@ public class GraphPlusTerminalTraversal<S, E, L> extends GraphPlusNormalTraversa
             }
             beans.add(o);
         }
-        // 切记释放资源.
-        CloseableIterator.closeIterator(this);
         return beans;
     }
 
@@ -296,18 +283,18 @@ public class GraphPlusTerminalTraversal<S, E, L> extends GraphPlusNormalTraversa
 
 
     public Stream<Pair<L, Vertex>> toPairStream() {
-        return toPairSet().stream();
+        return toPairList().stream();
     }
 
     public Stream<L> toBeanStream() {
-        return toBeanSet().stream();
+        return toBeanList().stream();
     }
 
     public Stream<Pair<L, Vertex>> toPairStream(Class<L> clazz) {
-        return toPairSet(clazz).stream();
+        return toPairList(clazz).stream();
     }
 
     public Stream<L> toBeanStream(Class<L> clazz) {
-        return toBeanSet(clazz).stream();
+        return toBeanList(clazz).stream();
     }
 }

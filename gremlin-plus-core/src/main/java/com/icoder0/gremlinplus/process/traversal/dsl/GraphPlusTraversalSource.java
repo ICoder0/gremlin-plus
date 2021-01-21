@@ -67,13 +67,15 @@ public class GraphPlusTraversalSource implements TraversalSource {
         final String label = vertexDefinition.getLabel();
         final BeanMap beanMap = vertexDefinition.getBeanMap();
         final Map<String, VertexPropertyDefinition> vertexPropertyDefinitionMap = vertexDefinition.getVertexPropertyDefinitionMap();
-        this.bytecode.addStep(GraphTraversal.Symbols.addV, label);
-        final GraphPlusNormalTraversal<Vertex, Vertex, T> first = new GraphPlusNormalTraversal<>(this, (Class<T>) entity.getClass());
 
-        final Vertex vertex = first.addStep(new AddVertexStartStep(first, label)).next();
+        final GraphPlusTraversalSource clone = this.clone();
+        clone.bytecode.addStep(GraphTraversal.Symbols.addV, label);
+        final GraphPlusNormalTraversal<Vertex, Vertex, T> normalTraversal = new GraphPlusNormalTraversal<>(clone, (Class<T>) entity.getClass());
+
+        final Vertex vertex = normalTraversal.addStep(new AddVertexStartStep(normalTraversal, label)).next();
 
         for (Object key : beanMap.keySet()) {
-            final VertexPropertyDefinition vertexPropertyDefinition = vertexPropertyDefinitionMap.get((String) key);
+            final VertexPropertyDefinition vertexPropertyDefinition = vertexPropertyDefinitionMap.get(key);
             final String propertyName = vertexPropertyDefinition.getPropertyName();
             // 如果是主键id, 跳过property赋值.
             if (vertexPropertyDefinition.isPrimaryKey()) {
@@ -90,11 +92,10 @@ public class GraphPlusTraversalSource implements TraversalSource {
                 });
                 continue;
             }
-
             Optional.ofNullable(beanMap.get(entity, key)).ifPresent(value -> vertex.property(propertyName, value));
         }
         // 切记释放资源.
-        CloseableIterator.closeIterator(first);
+        CloseableIterator.closeIterator(normalTraversal);
         return vertex;
     }
 
@@ -102,7 +103,6 @@ public class GraphPlusTraversalSource implements TraversalSource {
      * 效果如同addV(String label)
      */
     public <T> GraphPlusTerminalTraversal<Vertex, Vertex, T> addV(Class<T> clazz) {
-        final GraphPlusTraversalSource clone = this.clone();
         final BeanMap.Generator generator = new BeanMap.Generator();
         generator.setBeanClass(clazz);
         final VertexDefinition vertexDefinition = getVertexDefinitionCache().putIfAbsent(clazz, () -> VertexDefinition.builder()
@@ -112,6 +112,8 @@ public class GraphPlusTraversalSource implements TraversalSource {
                 .build()
         );
         final String label = vertexDefinition.getLabel();
+
+        final GraphPlusTraversalSource clone = this.clone();
         clone.bytecode.addStep(GraphTraversal.Symbols.addV, label);
         final GraphPlusTerminalTraversal<Vertex, Vertex, T> traversal = new GraphPlusTerminalTraversal<>(clone, clazz);
         return (GraphPlusTerminalTraversal<Vertex, Vertex, T>) traversal.addStep(new AddVertexStartStep(traversal, label));
@@ -121,10 +123,9 @@ public class GraphPlusTraversalSource implements TraversalSource {
      * 效果如同addE(String label)
      */
     public <T> GraphPlusTerminalTraversal<Edge, Edge, T> addE(Class<T> clazz) {
-        final GraphPlusTraversalSource clone = this.clone();
         final String label = AnnotationSupport.resolveEdgeLabel(clazz);
-        clone.bytecode.addStep(GraphTraversal.Symbols.addE, label);
-        final GraphPlusTerminalTraversal<Edge, Edge, T> traversal = new GraphPlusTerminalTraversal<>(clone, clazz);
+        this.bytecode.addStep(GraphTraversal.Symbols.addE, label);
+        final GraphPlusTerminalTraversal<Edge, Edge, T> traversal = new GraphPlusTerminalTraversal<>(this, clazz);
         return (GraphPlusTerminalTraversal<Edge, Edge, T>) traversal.addStep(new AddEdgeStartStep(traversal, label));
     }
 
@@ -132,9 +133,8 @@ public class GraphPlusTraversalSource implements TraversalSource {
      * Spawns a {@link GraphTraversal} starting it with arbitrary values.
      */
     public <S> GraphPlusTerminalTraversal<S, S, ?> inject(S... starts) {
-        final GraphPlusTraversalSource clone = this.clone();
-        clone.bytecode.addStep(GraphTraversal.Symbols.inject, starts);
-        final GraphPlusTerminalTraversal<S, S, ?> traversal = new GraphPlusTerminalTraversal<>(clone);
+        this.bytecode.addStep(GraphTraversal.Symbols.inject, starts);
+        final GraphPlusTerminalTraversal<S, S, ?> traversal = new GraphPlusTerminalTraversal<>(this);
         return (GraphPlusTerminalTraversal<S, S, ?>) traversal.addStep(new InjectStep<>(traversal, starts));
     }
 

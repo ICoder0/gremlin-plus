@@ -8,7 +8,7 @@
   <img alt="GitHub forks" src="https://img.shields.io/github/forks/icoder0/gremlin-plus?style=social">
 </p>
 
-> 主要解决以下问题
+主要解决以下问题
 > - 释放对Vertex/Edge/Property标签MAGIC_CODE管理.
 > - 简化Vertex/Edge对应实体类的Convert/Mapping逻辑.
 > - 提供Vertex/Edge对应非序列化字段的对象缓存机制, 减少客户端显式声明多个缓存管理的开发成本开销, 并提供KeyGenerator/UnSerializedPropertyCache扩展插件接口.
@@ -63,5 +63,3 @@ public class Solution {
 }
 ```
 更多samples参见example模块, 若有更多需求, 欢迎提issue/pr.
-
-[![Anurag's github stats](https://github-readme-stats.vercel.app/api?username=bofa1ex&hide=stars,contribs,prs&show_icons=true&theme=radical)](https://github.com/anuraghazra/github-readme-stats)
